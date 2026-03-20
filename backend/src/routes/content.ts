@@ -3,6 +3,23 @@ import SiteContent from '../models/SiteContent';
 
 const router = Router();
 
+// Deeply sanitize body to remove immutable fields
+const sanitize = (obj: any): any => {
+  if (!obj || typeof obj !== 'object') return obj;
+  if (Array.isArray(obj)) return obj.map(sanitize);
+
+  const newObj = { ...obj };
+  delete newObj._id;
+  delete newObj.__v;
+  delete newObj.createdAt;
+  delete newObj.updatedAt;
+
+  for (const key in newObj) {
+    newObj[key] = sanitize(newObj[key]);
+  }
+  return newObj;
+};
+
 // Get the current site content
 router.get('/', async (req: Request, res: Response) => {
   try {
@@ -20,43 +37,26 @@ router.get('/', async (req: Request, res: Response) => {
 // Update or initial create of site content
 router.post('/', async (req: Request, res: Response) => {
   try {
-    let content = await SiteContent.findOne();
-    
-    // Deeply sanitize body to remove immutable fields
-    const sanitize = (obj: any): any => {
-      if (!obj || typeof obj !== 'object') return obj;
-      if (Array.isArray(obj)) return obj.map(sanitize);
-      
-      const newObj = { ...obj };
-      delete newObj._id;
-      delete newObj.__v;
-      delete newObj.createdAt;
-      delete newObj.updatedAt;
-      
-      for (const key in newObj) {
-        newObj[key] = sanitize(newObj[key]);
-      }
-      return newObj;
-    };
-
+    const existingContent = await SiteContent.findOne();
     const updateData = sanitize(req.body);
 
-    if (content) {
+    if (existingContent) {
       // Use set() for deep update 
-      content.set(updateData);
+      existingContent.set(updateData);
       
       // Explicitly mark all provided top-level fields as modified
       Object.keys(updateData).forEach(field => {
-        content.markModified(field);
+        existingContent.markModified(field);
       });
       
-      content.updatedAt = new Date();
-      await content.save();
+      existingContent.updatedAt = new Date();
+      await existingContent.save();
+      return res.json(existingContent);
     } else {
-      content = new SiteContent(updateData);
-      await content.save();
+      const newContent = new SiteContent(updateData);
+      await newContent.save();
+      return res.json(newContent);
     }
-    res.json(content);
   } catch (error) {
     console.error('Error saving site content:', error);
     res.status(500).json({ error: `Save failed: ${error instanceof Error ? error.message : 'Unknown error'}` });

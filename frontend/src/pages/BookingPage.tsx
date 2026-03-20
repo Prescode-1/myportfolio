@@ -20,6 +20,9 @@ export default function BookingPage() {
   const days = Array.from({ length: 31 }, (_, i) => i + 1);
   const times = content.booking.availableTimes;
 
+  const API_URL = (import.meta as any).env?.VITE_API_URL || 
+                 `${window.location.protocol}//${window.location.hostname}:5000`;
+
   const handleBooking = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedDate || !selectedTime) {
@@ -28,7 +31,7 @@ export default function BookingPage() {
     }
 
     try {
-      const response = await fetch('/api/bookings', {
+      const response = await fetch(`${API_URL}/api/bookings`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

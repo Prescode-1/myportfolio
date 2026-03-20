@@ -15,7 +15,10 @@ const PORT = Number(process.env.PORT) || 5000;
 app.use(cors());
 app.use(express.json());
 
-// Routes
+// Roots
+app.get('/', (req, res) => {
+  res.send('<h1>Portfolio API is Live!</h1><p>Visit /api/health for status.</p>');
+});
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/content', contentRoutes);
 app.use('/api/leads', leadRoutes);

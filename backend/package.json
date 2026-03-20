@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node dist/server.js",
     "dev": "tsx src/server.ts",
-    "build": "tsc"
+    "build": "tsc",
+    "render-start": "npm run build && npm start"
   },
   "dependencies": {
     "@types/nodemailer": "^7.0.11",

@@ -58,9 +58,9 @@ export default function Footer() {
           <div>
             <h4 className="text-lg font-bold mb-6">Services</h4>
             <ul className="space-y-4 text-slate-400">
-              {['SaaS Development', 'Mobile Apps', 'Cloud Solutions', 'UI/UX Design', 'Consulting'].map(service => (
-                <li key={service}>
-                  <a href="#" className="hover:text-primary transition-colors">{service}</a>
+              {content.services.map(service => (
+                <li key={service.title}>
+                  <a href="#services" className="hover:text-primary transition-colors">{service.title}</a>
                 </li>
               ))}
             </ul>
@@ -90,8 +90,8 @@ export default function Footer() {
             </Link>
           </div>
           <div className="flex gap-8">
-            <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
-            <a href="#" className="hover:text-white transition-colors">Terms of Service</a>
+            <Link to="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
+            <Link to="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
           </div>
           <button
             onClick={scrollToTop}

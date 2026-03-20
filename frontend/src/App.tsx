@@ -12,6 +12,8 @@ import BookingPage from './pages/BookingPage';
 import ProjectShowroom from './components/ProjectShowroom';
 import Services from './components/Services';
 import ContactForm from './components/ContactForm';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import TermsOfService from './pages/TermsOfService';
 import { ToastProvider } from './components/Toast';
 import { ContentProvider } from './context/ContentContext';
 
@@ -34,6 +36,8 @@ function AnimatedRoutes() {
           <Route path="/contact" element={<div className="pt-32"><ContactForm /></div>} />
           <Route path="/book" element={<BookingPage />} />
           <Route path="/blog" element={<Blog />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/terms" element={<TermsOfService />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/dashboard" element={<AdminDashboard />} />
           <Route path="*" element={<div className="min-h-screen flex items-center justify-center text-4xl font-bold">404 - Not Found</div>} />

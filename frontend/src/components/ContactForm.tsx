@@ -148,9 +148,9 @@ export default function ContactForm() {
                       className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all appearance-none"
                     >
                       <option value="">Select a service</option>
-                      <option value="saas">SaaS Development</option>
-                      <option value="mobile">Mobile App Prototyping</option>
-                      <option value="cloud">Cloud Migration</option>
+                      {content.services.map(s => (
+                        <option key={s.title} value={s.title}>{s.title}</option>
+                      ))}
                       <option value="other">Other</option>
                     </select>
                     {errors.service && <p className="text-xs font-bold text-red-500 ml-1">{errors.service.message}</p>}

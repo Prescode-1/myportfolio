@@ -164,9 +164,9 @@ export default function AdminDashboard() {
   }
 
   const stats = [
-    { label: 'Total Visitors', value: '12,450', change: '+12.5%', trend: 'up', icon: Users },
+    { label: 'Total Visitors', value: '1,240', change: '+12.5%', trend: 'up', icon: Users },
     { label: 'New Leads', value: leads.length.toString(), change: '+5.2%', trend: 'up', icon: MessageSquare },
-    { label: 'Project Views', value: '3,210', change: '-2.1%', trend: 'down', icon: BarChart3 },
+    { label: 'Booked Sessions', value: bookedSessions.length.toString(), change: '+8.4%', trend: 'up', icon: Calendar },
   ];
 
   const sidebarItems = [
@@ -268,10 +268,10 @@ export default function AdminDashboard() {
                   <h2 className="text-2xl font-extrabold text-dark mb-8">Recent Leads</h2>
                   <div className="space-y-4">
                     {leads.map((lead) => (
-                      <div key={lead.id} className="flex items-center justify-between p-6 bg-slate-50 rounded-3xl">
+                      <div key={lead._id} className="flex items-center justify-between p-6 bg-slate-50 rounded-3xl">
                         <div className="flex items-center gap-4">
                           <div className="w-12 h-12 bg-primary/10 text-primary rounded-2xl flex items-center justify-center font-bold">
-                            {lead.fullName[0]}
+                            {lead.fullName?.[0] || '?'}
                           </div>
                           <div>
                             <div className="font-bold text-dark">{lead.fullName}</div>
@@ -280,7 +280,7 @@ export default function AdminDashboard() {
                         </div>
                         <div className="text-right">
                           <div className="text-sm font-bold text-slate-600 capitalize">{lead.service}</div>
-                          <div className="text-xs text-slate-400">{lead.createdAt.toLocaleDateString()}</div>
+                          <div className="text-xs text-slate-400">{lead.createdAt ? new Date(lead.createdAt).toLocaleDateString() : 'N/A'}</div>
                         </div>
                       </div>
                     ))}
@@ -986,11 +986,11 @@ export default function AdminDashboard() {
                       </div>
                     ) : (
                       bookedSessions.map((session) => (
-                        <div key={session.id} className="p-6 bg-slate-50 rounded-3xl border border-slate-100 hover:border-primary/20 transition-all">
+                        <div key={session._id} className="p-6 bg-slate-50 rounded-3xl border border-slate-100 hover:border-primary/20 transition-all">
                           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                             <div className="flex items-center gap-4">
                               <div className="w-12 h-12 bg-primary/10 text-primary rounded-2xl flex items-center justify-center font-bold">
-                                {session.name[0]}
+                                {session.name?.[0] || '?'}
                               </div>
                               <div>
                                 <div className="font-bold text-dark text-lg">{session.name}</div>

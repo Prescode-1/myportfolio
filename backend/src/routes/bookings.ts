@@ -21,16 +21,12 @@ router.post('/', async (req: Request, res: Response) => {
     const newBooking = new Booking(req.body);
     const savedBooking = await newBooking.save();
     
-    // Send actual email notification via Nodemailer
-    try {
-      await sendBookingNotification(savedBooking);
-      console.log(`Email notification sent to pukwedeh@gmail.com for: ${savedBooking.service}`);
-    } catch (err) {
-      console.error('Email failed to send. Check GMAIL_PASS app password:', err);
-    }
+    // Send email notification in the background (DO NOT AWAIT)
+    sendBookingNotification(savedBooking)
+      .then(() => console.log(`✅ Email sent to admin for: ${savedBooking.service}`))
+      .catch(err => console.error('❌ Email background error:', err.message));
     
-    console.log("--------------------------");
-    
+    // Respond instantly to the user
     res.status(201).json(savedBooking);
   } catch (error) {
     console.error('Error saving booking:', error);

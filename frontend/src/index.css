@@ -9,20 +9,16 @@
 
 @layer base {
   html {
-    @apply text-[14px] sm:text-[16px] scroll-smooth;
+    @apply text-[14px] sm:text-[16px];
   }
   body {
-    @apply bg-secondary text-dark font-sans antialiased transition-colors duration-300;
-  }
-  
-  .dark body {
-    @apply bg-dark text-white;
+    @apply bg-secondary text-dark font-sans antialiased;
   }
 }
 
 @layer components {
   .glass {
-    @apply backdrop-blur-md bg-white/70 dark:bg-slate-900/70 border border-white/20 dark:border-slate-800/50 shadow-xl;
+    @apply backdrop-blur-md bg-white/70 border border-white/20 shadow-xl;
   }
   
   .glass-dark {
@@ -34,7 +30,7 @@
   }
   
   .btn-secondary {
-    @apply bg-white dark:bg-slate-800 text-dark dark:text-white px-6 py-3 rounded-xl font-semibold border border-slate-200 dark:border-slate-700 transition-all hover:bg-slate-50 dark:hover:bg-slate-700 hover:scale-105 active:scale-95 shadow-md;
+    @apply bg-white text-dark px-6 py-3 rounded-xl font-semibold border border-slate-200 transition-all hover:bg-slate-50 hover:scale-105 active:scale-95 shadow-md;
   }
 }
 

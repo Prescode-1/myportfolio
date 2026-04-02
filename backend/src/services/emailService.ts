@@ -7,24 +7,25 @@ const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com',
   port: 465,
   secure: true, // Use SSL/TLS
+  pool: true,   // Use connection pooling
   auth: {
     user: process.env.GMAIL_USER,
-    pass: process.env.GMAIL_PASS, // This MUST be an "App Password" from Google Account settings
+    pass: process.env.GMAIL_PASS, // This MUST be an "App Password"
   },
-  connectionTimeout: 10000, // 10 seconds max wait
+  connectionTimeout: 10000, 
   greetingTimeout: 10000,
 });
 
 const generateICS = (booking: any) => {
   try {
-    // Parse date like "March 23, 2026" and time like "10:00 AM"
-    const dateStr = booking.date; // e.g., "March 23, 2026"
-    const timeStr = booking.time; // e.g., "10:00 AM"
+    const dateStr = booking.date; 
+    const timeStr = booking.time; 
     
+    // Attempt to parse date
     const dateObj = new Date(`${dateStr} ${timeStr}`);
     
     if (isNaN(dateObj.getTime())) {
-      console.error('Invalid date/time for ICS generation:', dateStr, timeStr);
+      console.error('Invalid date/time for ICS:', dateStr, timeStr);
       return null;
     }
 
@@ -33,23 +34,24 @@ const generateICS = (booking: any) => {
     };
 
     const start = formatICSDate(dateObj);
-    const end = formatICSDate(new Date(dateObj.getTime() + 60 * 60 * 1000)); // 1 hour duration
+    const end = formatICSDate(new Date(dateObj.getTime() + 60 * 60 * 1000)); // 1 hour
 
     return `BEGIN:VCALENDAR
 VERSION:2.0
 PRODID:-//PresCode//Portfolio//EN
+CALSCALE:GREGORIAN
 METHOD:REQUEST
 BEGIN:VEVENT
-UID:${booking._id || Math.random().toString(36).substr(2, 9)}
+UID:${booking._id ? booking._id.toString() : Math.random().toString(36).substr(2, 9)}@prescode.com
 DTSTAMP:${formatICSDate(new Date())}
 DTSTART:${start}
 DTEND:${end}
 SUMMARY:Consultation: ${booking.service}
-DESCRIPTION:Consultation with PresCode.\n\nService: ${booking.service}\nClient: ${booking.name}\nNotes: ${booking.message || 'None'}
+DESCRIPTION:Consultation with PresCode.\\n\\nService: ${booking.service}\\nClient: ${booking.name}\\nNotes: ${booking.message || 'None'}
 LOCATION:Google Meet / Zoom
 STATUS:CONFIRMED
 SEQUENCE:0
-ATTENDEE;CN="${booking.name}";RSVP=TRUE:mailto:${booking.email}
+ATTENDEE;CUTYPE=INDIVIDUAL;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE;CN=${booking.name}:mailto:${booking.email}
 ORGANIZER;CN="PresCode":mailto:${process.env.GMAIL_USER}
 BEGIN:VALARM
 TRIGGER:-PT15M
@@ -59,30 +61,30 @@ END:VALARM
 END:VEVENT
 END:VCALENDAR`;
   } catch (error) {
-    console.error('ICS generation error:', error);
+    console.error('ICS creation failed:', error);
     return null;
   }
 };
 
 export const sendBookingNotification = async (booking: any) => {
   const icsContent = generateICS(booking);
+  const adminEmail = process.env.GMAIL_USER;
 
   const adminMailOptions = {
-    from: `"Portfolio Booking" <${process.env.GMAIL_USER}>`,
-    to: process.env.GMAIL_USER,
+    from: `"Portfolio Alerts" <${adminEmail}>`,
+    to: adminEmail,
     subject: `📅 New Booking: ${booking.service} with ${booking.name}`,
     html: `
-      <div style="font-family: inherit; line-height: 1.6; color: #334155;">
-        <h2 style="color: #0f172a;">New Consultation Booking</h2>
+      <div style="font-family: sans-serif; line-height: 1.6; color: #334155;">
+        <h2 style="color: #0f172a;">New Consultation Booking Received</h2>
         <div style="background: #f8fafc; padding: 24px; border-radius: 16px; border: 1px solid #e2e8f0;">
-          <p><strong>Client Name:</strong> ${booking.name}</p>
-          <p><strong>Client Email:</strong> ${booking.email}</p>
-          <p><strong>Service Type:</strong> ${booking.service}</p>
+          <p><strong>Client:</strong> ${booking.name}</p>
+          <p><strong>Email:</strong> ${booking.email}</p>
+          <p><strong>Service:</strong> ${booking.service}</p>
           <p><strong>Date:</strong> ${booking.date}</p>
           <p><strong>Time:</strong> ${booking.time}</p>
-          <p><strong>Message/Notes:</strong> ${booking.message || 'N/A'}</p>
+          <p><strong>Message:</strong> ${booking.message || 'N/A'}</p>
         </div>
-        <p style="margin-top: 20px;">Please follow up with the client within 24 hours.</p>
       </div>
     `,
     ...(icsContent && {
@@ -95,48 +97,30 @@ export const sendBookingNotification = async (booking: any) => {
   };
 
   const clientMailOptions = {
-    from: `"PresCode Consultation" <${process.env.GMAIL_USER}>`,
+    from: `"PresCode Consultation" <${adminEmail}>`,
     to: booking.email,
     subject: `✅ Booking Confirmed: ${booking.service}`,
     html: `
-      <div style="font-family: sans-serif; line-height: 1.6; color: #334155; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <div style="text-align: center; margin-bottom: 30px;">
-          <h1 style="color: #6366f1; margin-bottom: 10px;">Booking Confirmed!</h1>
-          <p style="font-size: 18px; color: #64748b;">Hi ${booking.name}, your session is scheduled.</p>
+      <div style="font-family: sans-serif; line-height: 1.6; color: #334155; max-width: 600px; margin: 0 auto;">
+        <div style="text-align: center; margin: 40px 0;">
+          <h1 style="color: #6366f1;">Session Confirmed!</h1>
+          <p style="font-size: 18px;">Hi ${booking.name}, your consultation has been booked successfully.</p>
         </div>
         
-        <div style="background: #ffffff; padding: 30px; border-radius: 20px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);">
-          <h2 style="margin-top: 0; font-size: 20px; color: #1e293b; border-bottom: 2px solid #f1f5f9; padding-bottom: 15px;">Session Details</h2>
-          <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
-            <tr>
-              <td style="padding: 10px 0; color: #64748b; font-weight: 600; width: 120px;">Service</td>
-              <td style="padding: 10px 0; color: #1e293b; font-weight: 700;">${booking.service}</td>
-            </tr>
-            <tr>
-              <td style="padding: 10px 0; color: #64748b; font-weight: 600;">Date</td>
-              <td style="padding: 10px 0; color: #1e293b; font-weight: 700;">${booking.date}</td>
-            </tr>
-            <tr>
-              <td style="padding: 10px 0; color: #64748b; font-weight: 600;">Time</td>
-              <td style="padding: 10px 0; color: #1e293b; font-weight: 700;">${booking.time}</td>
-            </tr>
-            <tr>
-              <td style="padding: 10px 0; color: #64748b; font-weight: 600;">Platform</td>
-              <td style="padding: 10px 0; color: #1e293b; font-weight: 700;">Google Meet / Zoom</td>
-            </tr>
-          </table>
+        <div style="background: #ffffff; padding: 30px; border-radius: 20px; border: 1px solid #e2e8f0;">
+          <h2 style="margin-top: 0; color: #1e293b;">Meeting Details</h2>
+          <p><strong>Service:</strong> ${booking.service}</p>
+          <p><strong>Date:</strong> ${booking.date}</p>
+          <p><strong>Time:</strong> ${booking.time}</p>
+          <p><strong>Platform:</strong> Google Meet / Zoom</p>
         </div>
         
-        <div style="margin-top: 30px; padding: 20px; background: #eff6ff; border-radius: 16px; border-left: 4px solid #3b82f6;">
-          <p style="margin: 0; color: #1e40af; font-weight: 600;">What's next?</p>
+        <div style="margin-top: 30px; padding: 20px; background: #eff6ff; border-radius: 16px;">
+          <p style="margin: 0; color: #1e40af; font-weight: bold;">Important:</p>
           <p style="margin: 10px 0 0; color: #1e3a8a; font-size: 14px;">
-            I have attached a calendar invitation to this email. Please add it to your calendar to receive a reminder 15 minutes before we start.
+            A calendar invitation is attached to this email. Please add it to your calendar to receive a reminder before we start.
           </p>
         </div>
-        
-        <p style="text-align: center; color: #94a3b8; font-size: 14px; margin-top: 40px;">
-          If you need to reschedule, please reply to this email at least 24 hours in advance.
-        </p>
       </div>
     `,
     ...(icsContent && {
@@ -148,11 +132,19 @@ export const sendBookingNotification = async (booking: any) => {
     })
   };
 
-  // Run both in parallel
-  return Promise.all([
-    transporter.sendMail(adminMailOptions),
-    transporter.sendMail(clientMailOptions)
-  ]);
+  try {
+    // Send admin notification first
+    await transporter.sendMail(adminMailOptions);
+    console.log('✅ Admin notification sent');
+    
+    // Then send client confirmation
+    await transporter.sendMail(clientMailOptions);
+    console.log('✅ Client confirmation sent');
+    
+  } catch (error) {
+    console.error('❌ Email notification failed:', error);
+    throw error; // Rethrow to let the caller handle it
+  }
 };
 
 export const sendContactMessage = async (message: any) => {

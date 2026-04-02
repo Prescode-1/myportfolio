@@ -148,22 +148,55 @@ export const sendBookingNotification = async (booking: any) => {
 };
 
 export const sendContactMessage = async (message: any) => {
-  const mailOptions = {
-    from: `"Portfolio Contact" <${process.env.GMAIL_USER}>`,
-    to: process.env.GMAIL_USER, // Send to yourself
+  const adminEmail = process.env.GMAIL_USER;
+
+  const adminMailOptions = {
+    from: `"Portfolio Lead" <${adminEmail}>`,
+    to: adminEmail,
     subject: `✉️ New Message from ${message.fullName}`,
     html: `
-      <h2>New Inquiry from Website</h2>
-      <p><strong>Name:</strong> ${message.fullName}</p>
-      <p><strong>Email:</strong> ${message.email}</p>
-      <p><strong>Phone:</strong> ${message.phone || 'N/A'}</p>
-      <p><strong>Interest:</strong> ${message.service || 'N/A'}</p>
-      <p><strong>Message:</strong></p>
-      <p>${message.message}</p>
-      <hr />
-      <p>Reply directly to: ${message.email}</p>
+      <div style="font-family: sans-serif; line-height: 1.6; color: #334155;">
+        <h2 style="color: #0f172a;">New Website Inquiry</h2>
+        <div style="background: #f8fafc; padding: 24px; border-radius: 16px; border: 1px solid #e2e8f0;">
+          <p><strong>Name:</strong> ${message.fullName}</p>
+          <p><strong>Email:</strong> ${message.email}</p>
+          <p><strong>Phone:</strong> ${message.phone || 'N/A'}</p>
+          <p><strong>Interest:</strong> ${message.service || 'N/A'}</p>
+          <p><strong>Message:</strong></p>
+          <p style="white-space: pre-wrap;">${message.message}</p>
+        </div>
+      </div>
     `,
   };
 
-  return transporter.sendMail(mailOptions);
+  const clientMailOptions = {
+    from: `"PresCode Consultation" <${adminEmail}>`,
+    to: message.email,
+    subject: `📩 Message Received: Thanks for reaching out!`,
+    html: `
+      <div style="font-family: sans-serif; line-height: 1.6; color: #334155; max-width: 600px; margin: 0 auto;">
+        <div style="text-align: center; margin: 40px 0;">
+          <h1 style="color: #6366f1;">Message Received!</h1>
+          <p style="font-size: 18px;">Hi ${message.fullName}, thanks for getting in touch.</p>
+        </div>
+        
+        <div style="background: #ffffff; padding: 30px; border-radius: 20px; border: 1px solid #e2e8f0;">
+          <p>I've received your message regarding <strong>${message.service || 'a project'}</strong> and I'll review it shortly.</p>
+          <p>You can expect a response from me at this email address within the next 24 hours.</p>
+        </div>
+        
+        <div style="margin-top: 30px; text-align: center; color: #64748b; font-size: 14px;">
+          <p>Best regards,<br /><strong>PresCode</strong></p>
+        </div>
+      </div>
+    `,
+  };
+
+  try {
+    await transporter.sendMail(adminMailOptions);
+    await transporter.sendMail(clientMailOptions);
+    console.log('✅ Contact emails sent successfully');
+  } catch (error) {
+    console.error('❌ Contact email failure:', error);
+  }
 };

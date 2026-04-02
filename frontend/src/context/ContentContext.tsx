@@ -87,8 +87,7 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   // Priority: 1. Environment Variable, 2. Current Host (if 5000), 3. Localhost Default
   // Auto-detect backend host based on how the site is accessed
-  const API_URL = (import.meta as any).env?.VITE_API_URL || 
-                 `${window.location.protocol}//${window.location.hostname}:5000`;
+  const API_URL = (import.meta as any).env?.VITE_API_URL || "https://myportfolio-07kr.onrender.com";
 
   useEffect(() => {
     // 1. Initial Load from Backend

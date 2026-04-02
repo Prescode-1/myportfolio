@@ -20,8 +20,7 @@ export default function BookingPage() {
   const days = Array.from({ length: 31 }, (_, i) => i + 1);
   const times = content.booking.availableTimes;
 
-  const API_URL = (import.meta as any).env?.VITE_API_URL || 
-                 `${window.location.protocol}//${window.location.hostname}:5000`;
+  const API_URL = (import.meta as any).env?.VITE_API_URL || "https://myportfolio-07kr.onrender.com";
 
   const handleBooking = async (e: React.FormEvent) => {
     e.preventDefault();

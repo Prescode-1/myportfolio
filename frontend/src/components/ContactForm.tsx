@@ -19,8 +19,7 @@ type ContactFormData = z.infer<typeof contactSchema>;
 
 export default function ContactForm() {
   const { content } = useContent();
-  const API_URL = (import.meta as any).env?.VITE_API_URL || 
-                 `${window.location.protocol}//${window.location.hostname}:5000`;
+  const API_URL = (import.meta as any).env?.VITE_API_URL || "https://myportfolio-07kr.onrender.com";
   const [isSubmitted, setIsSubmitted] = useState(false);
   const { showToast } = useToast();
   const { register, handleSubmit, formState: { errors, isSubmitting }, reset } = useForm<ContactFormData>({

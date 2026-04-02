@@ -21,8 +21,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(false);
   const { showToast } = useToast();
 
-  const API_URL = (import.meta as any).env?.VITE_API_URL || 
-                 `${window.location.protocol}//${window.location.hostname}:5000`;
+  const API_URL = (import.meta as any).env?.VITE_API_URL || "https://myportfolio-07kr.onrender.com";
 
   // Fetch Data
   React.useEffect(() => {

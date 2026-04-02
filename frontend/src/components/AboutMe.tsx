@@ -6,7 +6,7 @@ import { useContent } from '../context/ContentContext';
 export default function AboutMe() {
   const { content } = useContent();
   const { about } = content;
-  
+
   if (!about) return null;
 
   const getIcon = (iconName: string) => {
@@ -81,16 +81,16 @@ export default function AboutMe() {
           </div>
 
           <div className="flex flex-wrap gap-4">
-            <button 
+            <button
               onClick={() => document.getElementById('process')?.scrollIntoView({ behavior: 'smooth' })}
               className="btn-primary"
             >
               Learn More About My Process
             </button>
             {content.contactInfo.cvUrl && content.contactInfo.cvUrl !== '#' && (
-              <a 
-                href={content.contactInfo.cvUrl} 
-                target="_blank" 
+              <a
+                href={content.contactInfo.cvUrl}
+                target="_blank"
                 rel="noopener noreferrer"
                 className="btn-secondary"
               >

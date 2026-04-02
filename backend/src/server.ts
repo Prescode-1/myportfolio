@@ -5,11 +5,21 @@ import dotenv from 'dotenv';
 import bookingRoutes from './routes/bookings';
 import contentRoutes from './routes/content';
 import leadRoutes from './routes/leads';
+import { transporter } from './services/emailService';
 
 dotenv.config();
 
 const app = express();
 const PORT = Number(process.env.PORT) || 5000;
+
+// Verify SMTP connection on startup
+transporter.verify((error: any, success: any) => {
+  if (error) {
+    console.error('❌ SMTP connection failed:', error);
+  } else {
+    console.log('✅ SMTP server is ready to send emails');
+  }
+});
 
 // Middleware
 app.use(cors());

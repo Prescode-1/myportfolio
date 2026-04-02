@@ -3,17 +3,18 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const transporter = nodemailer.createTransport({
+export const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com',
-  port: 465,
-  secure: true, // Use SSL/TLS
-  pool: true,   // Use connection pooling
+  port: 587,
+  secure: false, // Use STARTTLS
+  pool: true,
   auth: {
     user: process.env.GMAIL_USER,
-    pass: process.env.GMAIL_PASS, // This MUST be an "App Password"
+    pass: process.env.GMAIL_PASS,
   },
-  connectionTimeout: 10000, 
-  greetingTimeout: 10000,
+  tls: {
+    rejectUnauthorized: false // Helps with some cloud hosting certificate issues
+  }
 });
 
 const generateICS = (booking: any) => {

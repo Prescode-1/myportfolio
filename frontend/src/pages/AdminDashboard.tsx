@@ -91,24 +91,24 @@ export default function AdminDashboard() {
     showToast('Logged out successfully!', 'success');
   };
 
-  const saveHero = () => {
-    updateContent({ hero: heroForm });
-    showToast('Hero content updated!', 'success');
+  const saveHero = async () => {
+    await updateContent({ hero: heroForm });
+    showToast('Hero content updated & synced!', 'success');
   };
 
-  const saveAbout = () => {
-    updateContent({ about: aboutForm });
-    showToast('About content updated!', 'success');
+  const saveAbout = async () => {
+    await updateContent({ about: aboutForm });
+    showToast('About content updated & synced!', 'success');
   };
 
-  const saveContact = () => {
-    updateContent({ contactInfo: contactForm });
-    showToast('Contact info updated!', 'success');
+  const saveContact = async () => {
+    await updateContent({ contactInfo: contactForm });
+    showToast('Contact info updated & synced!', 'success');
   };
 
-  const saveBooking = () => {
-    updateContent({ booking: bookingForm });
-    showToast('Booking settings updated!', 'success');
+  const saveBooking = async () => {
+    await updateContent({ booking: bookingForm });
+    showToast('Booking settings updated & synced!', 'success');
   };
 
   const deleteProject = (id: string) => {

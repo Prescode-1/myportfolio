@@ -38,91 +38,186 @@ interface SiteContent {
 
 interface ContentContextType {
   content: SiteContent;
-  updateContent: (newContent: Partial<SiteContent>) => void;
+  updateContent: (newContent: Partial<SiteContent>) => Promise<void>;
+  isLoading: boolean;
 }
 
-const defaultContent: SiteContent = {
+// These are ONLY used as absolute last resort if there's no cached data AND no backend response.
+// They should NEVER override real user data.
+const fallbackDefaults: SiteContent = {
   projects: PROJECTS,
   services: SERVICES,
   skills: SKILLS,
   contactInfo: {
-    email: 'pukwedeh@gmail.com',
-    phone: '+1 (555) 000-0000',
-    address: '123 Tech Avenue, Silicon Valley, CA',
-    instagram: 'https://instagram.com/prescode',
-    linkedin: 'https://linkedin.com/in/prescode',
-    twitter: 'https://twitter.com/prescode',
-    github: 'https://github.com/prescode',
-    cvUrl: '#',
+    email: '',
+    phone: '',
+    address: '',
+    instagram: '',
+    linkedin: '',
+    twitter: '',
+    github: '',
+    cvUrl: '',
   },
   hero: {
-    name: 'PresCode',
-    roles: ['UI/UX Designer', 'Full Stack Developer', 'Mobile App Expert', 'System Architect'],
-    description: 'I build high-performance, responsive digital experiences that help businesses scale. From concept to deployment, I deliver enterprise-grade solutions with a focus on user experience.',
-    image: 'https://img.freepik.com/free-psd/3d-illustration-person-with-laptop_23-2149436188.jpg'
+    name: '',
+    roles: [],
+    description: '',
+    image: ''
   },
   about: {
-    description: 'I am a passionate Full Stack Developer and UI/UX Designer with over 5 years of experience in building enterprise-level applications. My approach combines technical excellence with a deep understanding of user behavior to create products that are not only functional but also delightful to use.',
-    image: 'https://img.freepik.com/free-psd/3d-illustration-person-with-laptop_23-2149436188.jpg',
+    description: '',
+    image: '',
     stats: [
-      { label: 'Years Experience', value: '5+', icon: 'Award' },
-      { label: 'Projects Completed', value: '100+', icon: 'Briefcase' },
-      { label: 'Happy Clients', value: '50+', icon: 'Users' },
+      { label: 'Years Experience', value: '0', icon: 'Award' },
+      { label: 'Projects Completed', value: '0', icon: 'Briefcase' },
+      { label: 'Happy Clients', value: '0', icon: 'Users' },
     ],
   },
   booking: {
     availableTimes: ['09:00 AM', '10:00 AM', '11:00 AM', '01:00 PM', '02:00 PM', '03:00 PM', '04:00 PM', '05:00 PM'],
     sessionDuration: '30-Minute Strategy Session',
     meetingPlatform: 'Google Meet or Zoom Call',
-    description: "Let's discuss your project, identify bottlenecks, and explore how we can achieve your business goals.",
+    description: '',
   },
 };
+
+const CACHE_KEY = 'portfolio_site_content_cache';
+const CACHE_TIMESTAMP_KEY = 'portfolio_site_content_cache_ts';
+
+// Load from localStorage cache (this is INSTANT, no network needed)
+function loadCachedContent(): SiteContent | null {
+  try {
+    const cached = localStorage.getItem(CACHE_KEY);
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      console.log('[ContentContext] Loaded content from localStorage cache');
+      return parsed;
+    }
+  } catch (e) {
+    console.warn('[ContentContext] Failed to read cache:', e);
+  }
+  return null;
+}
+
+// Save to localStorage cache
+function saveCachedContent(content: SiteContent): void {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify(content));
+    localStorage.setItem(CACHE_TIMESTAMP_KEY, Date.now().toString());
+    console.log('[ContentContext] Saved content to localStorage cache');
+  } catch (e) {
+    console.warn('[ContentContext] Failed to save cache:', e);
+  }
+}
+
+// Safely merge backend data into a base content object
+function mergeContent(base: SiteContent, data: any): SiteContent {
+  if (!data) return base;
+  return {
+    ...base,
+    ...data,
+    projects: Array.isArray(data.projects) && data.projects.length > 0 ? data.projects : base.projects,
+    services: Array.isArray(data.services) && data.services.length > 0 ? data.services : base.services,
+    skills: Array.isArray(data.skills) && data.skills.length > 0 ? data.skills : base.skills,
+    contactInfo: { ...base.contactInfo, ...(data.contactInfo || {}) },
+    hero: { ...base.hero, ...(data.hero || {}) },
+    about: {
+      ...base.about,
+      ...(data.about || {}),
+      stats: Array.isArray(data.about?.stats) && data.about.stats.length > 0
+        ? data.about.stats
+        : base.about.stats,
+    },
+    booking: { ...base.booking, ...(data.booking || {}) },
+  };
+}
 
 const ContentContext = createContext<ContentContextType | undefined>(undefined);
 
 export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [content, setContent] = useState<SiteContent>(defaultContent);
+  // PRIORITY ORDER for initial content:
+  // 1. localStorage cache (instant, most recent saved data)
+  // 2. fallback defaults (only if no cache exists)
+  const cachedContent = loadCachedContent();
+  const [content, setContent] = useState<SiteContent>(cachedContent || fallbackDefaults);
+  const [isLoading, setIsLoading] = useState(true);
   const { showToast } = useToast();
-  const [loading, setLoading] = useState(true);
 
-  // Priority: 1. Environment Variable, 2. Current Host (if 5000), 3. Localhost Default
-  // Auto-detect backend host based on how the site is accessed
   const API_URL = (import.meta as any).env?.VITE_API_URL || "https://myportfolio-07kr.onrender.com";
 
   useEffect(() => {
-    // 1. Initial Load from Backend
-    const fetchContent = async () => {
+    let isMounted = true;
+    const maxRetries = 3;
+
+    const fetchContent = async (attempt: number) => {
       try {
+        console.log(`[ContentContext] Fetching from backend (attempt ${attempt + 1}/${maxRetries})...`);
+        
+        const controller = new AbortController();
+        // Give Render's free tier time to wake up (60s timeout)
+        const timeoutId = setTimeout(() => controller.abort(), 60000);
+
         const res = await fetch(`${API_URL}/api/content?t=${Date.now()}`, {
+          signal: controller.signal,
           headers: {
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache'
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
           }
         });
-        const data = await res.json();
-        
-        if (data) {
-          // Robust merge
-          setContent(prev => ({
-            ...prev,
-            ...data,
-            projects: Array.isArray(data.projects) ? data.projects : prev.projects,
-            services: Array.isArray(data.services) ? data.services : prev.services,
-            skills: Array.isArray(data.skills) ? data.skills : prev.skills,
-            contactInfo: { ...prev.contactInfo, ...(data.contactInfo || {}) },
-            hero: { ...prev.hero, ...(data.hero || {}) },
-            about: { ...prev.about, ...(data.about || {}) },
-            booking: { ...prev.booking, ...(data.booking || {}) },
-          }));
+
+        clearTimeout(timeoutId);
+
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
         }
-      } catch (err) {
-        console.error('Failed to load live content, using defaults/backup.', err);
+
+        const data = await res.json();
+
+        if (!isMounted) return;
+
+        if (data && typeof data === 'object' && Object.keys(data).length > 0) {
+          // Backend returned real data — use it as the source of truth
+          const merged = mergeContent(fallbackDefaults, data);
+          setContent(merged);
+          saveCachedContent(merged);
+          console.log('[ContentContext] ✅ Backend data loaded and cached successfully');
+        } else {
+          // Backend returned null/empty — this means no content has ever been saved
+          // Keep whatever we currently have (cache or defaults)
+          console.log('[ContentContext] Backend returned empty — using cached/default content');
+        }
+      } catch (err: any) {
+        console.error(`[ContentContext] Fetch attempt ${attempt + 1} failed:`, err.message);
+        
+        if (isMounted && attempt < maxRetries - 1) {
+          // Retry after increasing delay (2s, 5s)
+          const delay = attempt === 0 ? 2000 : 5000;
+          console.log(`[ContentContext] Retrying in ${delay / 1000}s...`);
+          setTimeout(() => {
+            if (isMounted) fetchContent(attempt + 1);
+          }, delay);
+          return; // Don't set loading to false yet
+        } else {
+          // All retries exhausted — we're using cached data or defaults
+          if (cachedContent) {
+            console.log('[ContentContext] ⚠️ Using cached content (backend unreachable)');
+          } else {
+            console.log('[ContentContext] ⚠️ Using fallback defaults (no cache, backend unreachable)');
+          }
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
 
-    fetchContent();
+    fetchContent(0);
+
+    return () => {
+      isMounted = false;
+    };
   }, [API_URL]);
 
   const updateContent = async (newContent: Partial<SiteContent>) => {
@@ -130,21 +225,38 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const merged = { ...content, ...newContent };
     setContent(merged);
 
-    // 2. Sync to Backend
+    // 2. IMMEDIATELY cache to localStorage (this is the key fix!)
+    saveCachedContent(merged);
+
+    // 3. Sync to Backend
     try {
-      await fetch(`${API_URL}/api/content`, {
+      const res = await fetch(`${API_URL}/api/content`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(merged)
       });
+
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+
+      const savedData = await res.json();
+      console.log('[ContentContext] ✅ Content saved to backend successfully');
+      
+      // Update cache with the authoritative server response
+      if (savedData && typeof savedData === 'object') {
+        const finalContent = mergeContent(fallbackDefaults, savedData);
+        setContent(finalContent);
+        saveCachedContent(finalContent);
+      }
     } catch (err) {
-      console.error('Persistence failed:', err);
-      showToast('Connection issue: Change saved locally only.', 'warning');
+      console.error('[ContentContext] ❌ Backend save failed:', err);
+      showToast('Warning: Changes saved locally but failed to sync to server. They will appear on this device but may not persist after the next deployment.', 'warning');
     }
   };
 
   return (
-    <ContentContext.Provider value={{ content, updateContent }}>
+    <ContentContext.Provider value={{ content, updateContent, isLoading }}>
       {children}
     </ContentContext.Provider>
   );

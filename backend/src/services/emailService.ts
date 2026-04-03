@@ -3,12 +3,27 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+// Validate email config on module load
+const GMAIL_USER = process.env.GMAIL_USER;
+const GMAIL_PASS = process.env.GMAIL_PASS;
+
+if (!GMAIL_USER || !GMAIL_PASS) {
+  console.error('⚠️ WARNING: GMAIL_USER or GMAIL_PASS environment variables are missing!');
+  console.error('⚠️ Email notifications will NOT work.');
+  console.error('⚠️ Set these in your Render dashboard under Environment Variables.');
+}
+
+// Create transporter with timeout settings
 export const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
-    user: process.env.GMAIL_USER,
-    pass: process.env.GMAIL_PASS, // 16-character App Password
-  }
+    user: GMAIL_USER,
+    pass: GMAIL_PASS,
+  },
+  // Connection timeouts to prevent hanging
+  connectionTimeout: 10000, // 10s to connect
+  greetingTimeout: 10000, // 10s for greeting
+  socketTimeout: 15000, // 15s for socket operations
 });
 
 const generateICS = (booking: any) => {
@@ -47,7 +62,7 @@ LOCATION:Google Meet / Zoom
 STATUS:CONFIRMED
 SEQUENCE:0
 ATTENDEE;CUTYPE=INDIVIDUAL;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE;CN=${booking.name}:mailto:${booking.email}
-ORGANIZER;CN="PresCode":mailto:${process.env.GMAIL_USER}
+ORGANIZER;CN="PresCode":mailto:${GMAIL_USER}
 BEGIN:VALARM
 TRIGGER:-PT15M
 ACTION:DISPLAY
@@ -61,13 +76,38 @@ END:VCALENDAR`;
   }
 };
 
+// Helper: send a single email with retry
+async function sendMailWithRetry(mailOptions: any, label: string, maxRetries = 2): Promise<void> {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      await transporter.sendMail(mailOptions);
+      console.log(`✅ ${label} sent (attempt ${attempt})`);
+      return;
+    } catch (error: any) {
+      console.error(`❌ ${label} failed (attempt ${attempt}/${maxRetries}):`, error.message);
+      
+      if (attempt < maxRetries) {
+        // Wait before retry
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      } else {
+        throw error;
+      }
+    }
+  }
+}
+
 export const sendBookingNotification = async (booking: any) => {
+  // Guard: skip if email is not configured
+  if (!GMAIL_USER || !GMAIL_PASS) {
+    console.error('❌ Email not configured — skipping booking notification');
+    return;
+  }
+
   const icsContent = generateICS(booking);
-  const adminEmail = process.env.GMAIL_USER;
 
   const adminMailOptions = {
-    from: `"Portfolio Alerts" <${adminEmail}>`,
-    to: adminEmail,
+    from: `"Portfolio Alerts" <${GMAIL_USER}>`,
+    to: GMAIL_USER,
     subject: `📅 New Booking: ${booking.service} with ${booking.name}`,
     html: `
       <div style="font-family: sans-serif; line-height: 1.6; color: #334155;">
@@ -92,7 +132,7 @@ export const sendBookingNotification = async (booking: any) => {
   };
 
   const clientMailOptions = {
-    from: `"PresCode Consultation" <${adminEmail}>`,
+    from: `"PresCode Consultation" <${GMAIL_USER}>`,
     to: booking.email,
     subject: `✅ Booking Confirmed: ${booking.service}`,
     html: `
@@ -128,26 +168,29 @@ export const sendBookingNotification = async (booking: any) => {
   };
 
   try {
-    // Send admin notification first
-    await transporter.sendMail(adminMailOptions);
-    console.log('✅ Admin notification sent');
+    // Send admin notification first (with retry)
+    await sendMailWithRetry(adminMailOptions, 'Admin booking notification');
     
-    // Then send client confirmation
-    await transporter.sendMail(clientMailOptions);
-    console.log('✅ Client confirmation sent');
+    // Then send client confirmation (with retry)
+    await sendMailWithRetry(clientMailOptions, 'Client booking confirmation');
     
+    console.log('✅ All booking emails sent successfully');
   } catch (error) {
-    console.error('❌ Email notification failed:', error);
-    throw error; // Rethrow to let the caller handle it
+    console.error('❌ Email notification failed after retries:', error);
+    // Don't rethrow — the booking is already saved, email is best-effort
   }
 };
 
 export const sendContactMessage = async (message: any) => {
-  const adminEmail = process.env.GMAIL_USER;
+  // Guard: skip if email is not configured
+  if (!GMAIL_USER || !GMAIL_PASS) {
+    console.error('❌ Email not configured — skipping contact notification');
+    return;
+  }
 
   const adminMailOptions = {
-    from: `"Portfolio Lead" <${adminEmail}>`,
-    to: adminEmail,
+    from: `"Portfolio Lead" <${GMAIL_USER}>`,
+    to: GMAIL_USER,
     subject: `✉️ New Message from ${message.fullName}`,
     html: `
       <div style="font-family: sans-serif; line-height: 1.6; color: #334155;">
@@ -165,7 +208,7 @@ export const sendContactMessage = async (message: any) => {
   };
 
   const clientMailOptions = {
-    from: `"PresCode Consultation" <${adminEmail}>`,
+    from: `"PresCode Consultation" <${GMAIL_USER}>`,
     to: message.email,
     subject: `📩 Message Received: Thanks for reaching out!`,
     html: `
@@ -188,10 +231,11 @@ export const sendContactMessage = async (message: any) => {
   };
 
   try {
-    await transporter.sendMail(adminMailOptions);
-    await transporter.sendMail(clientMailOptions);
+    await sendMailWithRetry(adminMailOptions, 'Admin contact notification');
+    await sendMailWithRetry(clientMailOptions, 'Client auto-reply');
     console.log('✅ Contact emails sent successfully');
   } catch (error) {
-    console.error('❌ Contact email failure:', error);
+    console.error('❌ Contact email failure after retries:', error);
+    // Don't rethrow — the lead is already saved, email is best-effort
   }
 };

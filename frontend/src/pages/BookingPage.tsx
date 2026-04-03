@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Calendar, Clock, Video, ArrowRight, CheckCircle2, ChevronLeft, ChevronRight, User, Mail, MessageSquare } from 'lucide-react';
 import { useToast } from '../components/Toast';
@@ -11,16 +11,71 @@ export default function BookingPage() {
   const [selectedService, setSelectedService] = useState(content.services[0]?.title || '');
   const [selectedDate, setSelectedDate] = useState<number | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     message: ''
   });
 
-  const days = Array.from({ length: 31 }, (_, i) => i + 1);
+  // Dynamic calendar - uses CURRENT month/year
+  const [calendarMonth, setCalendarMonth] = useState(new Date().getMonth());
+  const [calendarYear, setCalendarYear] = useState(new Date().getFullYear());
+
+  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'];
+
+  const daysInMonth = useMemo(() => {
+    return new Date(calendarYear, calendarMonth + 1, 0).getDate();
+  }, [calendarMonth, calendarYear]);
+
+  // What day of the week does the month start on? (0 = Sunday)
+  const firstDayOfWeek = useMemo(() => {
+    return new Date(calendarYear, calendarMonth, 1).getDay();
+  }, [calendarMonth, calendarYear]);
+
+  const today = new Date();
+  const isCurrentMonth = calendarMonth === today.getMonth() && calendarYear === today.getFullYear();
+  const todayDate = today.getDate();
+
+  const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
   const times = content.booking.availableTimes;
 
   const API_URL = (import.meta as any).env?.VITE_API_URL || "https://myportfolio-07kr.onrender.com";
+
+  const prevMonth = () => {
+    // Don't go to past months
+    const now = new Date();
+    if (calendarYear === now.getFullYear() && calendarMonth === now.getMonth()) return;
+    
+    if (calendarMonth === 0) {
+      setCalendarMonth(11);
+      setCalendarYear(calendarYear - 1);
+    } else {
+      setCalendarMonth(calendarMonth - 1);
+    }
+    setSelectedDate(null);
+  };
+
+  const nextMonth = () => {
+    if (calendarMonth === 11) {
+      setCalendarMonth(0);
+      setCalendarYear(calendarYear + 1);
+    } else {
+      setCalendarMonth(calendarMonth + 1);
+    }
+    setSelectedDate(null);
+  };
+
+  const getFormattedDate = () => {
+    if (!selectedDate) return '';
+    return `${monthNames[calendarMonth]} ${selectedDate}, ${calendarYear}`;
+  };
+
+  const isDayDisabled = (day: number) => {
+    if (!isCurrentMonth) return false;
+    return day < todayDate;
+  };
 
   const handleBooking = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,31 +84,46 @@ export default function BookingPage() {
       return;
     }
 
+    setIsSubmitting(true);
+
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+
       const response = await fetch(`${API_URL}/api/bookings`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        signal: controller.signal,
         body: JSON.stringify({
           name: formData.name,
           email: formData.email,
           message: formData.message,
           service: selectedService,
-          date: `March ${selectedDate}, 2026`,
+          date: getFormattedDate(),
           time: selectedTime,
         }),
       });
 
+      clearTimeout(timeoutId);
+
       if (!response.ok) {
-        throw new Error('Failed to book session');
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.error || `Server error (${response.status})`);
       }
 
       setStep(4);
-      showToast('Session booked successfully!', 'success');
-    } catch (error) {
+      showToast('Session booked successfully! Check your email for confirmation.', 'success');
+    } catch (error: any) {
       console.error('Booking error:', error);
-      showToast('Failed to book session. Please try again.', 'error');
+      if (error.name === 'AbortError') {
+        showToast('Request timed out. The server might be starting up — please try again in 30 seconds.', 'error');
+      } else {
+        showToast(`Failed to book session: ${error.message}. Please try again.`, 'error');
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -142,31 +212,53 @@ export default function BookingPage() {
                 <div className="grid md:grid-cols-2 gap-12">
                   <div>
                     <div className="flex items-center justify-between mb-6">
-                      <h3 className="text-xl font-bold text-dark">March 2026</h3>
+                      <h3 className="text-xl font-bold text-dark">{monthNames[calendarMonth]} {calendarYear}</h3>
                       <div className="flex gap-2">
-                        <button className="p-2 hover:bg-slate-100 rounded-xl transition-all"><ChevronLeft size={20} /></button>
-                        <button className="p-2 hover:bg-slate-100 rounded-xl transition-all"><ChevronRight size={20} /></button>
+                        <button 
+                          onClick={prevMonth}
+                          className="p-2 hover:bg-slate-100 rounded-xl transition-all"
+                        >
+                          <ChevronLeft size={20} />
+                        </button>
+                        <button 
+                          onClick={nextMonth}
+                          className="p-2 hover:bg-slate-100 rounded-xl transition-all"
+                        >
+                          <ChevronRight size={20} />
+                        </button>
                       </div>
                     </div>
                     <div className="grid grid-cols-7 gap-2 text-center mb-4">
-                      {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(d => (
-                        <div key={d} className="text-xs font-bold text-slate-400">{d}</div>
+                      {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
+                        <div key={`${d}-${i}`} className="text-xs font-bold text-slate-400">{d}</div>
                       ))}
                     </div>
                     <div className="grid grid-cols-7 gap-2">
-                      {days.map(d => (
-                        <button
-                          key={d}
-                          onClick={() => setSelectedDate(d)}
-                          className={`h-10 rounded-xl text-sm font-bold transition-all ${
-                            selectedDate === d
-                              ? 'bg-primary text-white shadow-lg shadow-primary/30'
-                              : 'text-slate-600 hover:bg-slate-100'
-                          }`}
-                        >
-                          {d}
-                        </button>
+                      {/* Empty cells for days before the 1st */}
+                      {Array.from({ length: firstDayOfWeek }, (_, i) => (
+                        <div key={`empty-${i}`} />
                       ))}
+                      {days.map(d => {
+                        const disabled = isDayDisabled(d);
+                        return (
+                          <button
+                            key={d}
+                            onClick={() => !disabled && setSelectedDate(d)}
+                            disabled={disabled}
+                            className={`h-10 rounded-xl text-sm font-bold transition-all ${
+                              selectedDate === d
+                                ? 'bg-primary text-white shadow-lg shadow-primary/30'
+                                : disabled
+                                  ? 'text-slate-300 cursor-not-allowed'
+                                  : isCurrentMonth && d === todayDate
+                                    ? 'text-primary bg-primary/10 hover:bg-primary/20'
+                                    : 'text-slate-600 hover:bg-slate-100'
+                            }`}
+                          >
+                            {d}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
 
@@ -267,7 +359,7 @@ export default function BookingPage() {
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div className="flex items-center gap-2 text-slate-600">
                         <Calendar size={16} className="text-primary" />
-                        March {selectedDate}, 2026
+                        {getFormattedDate()}
                       </div>
                       <div className="flex items-center gap-2 text-slate-600">
                         <Clock size={16} className="text-primary" />
@@ -294,9 +386,17 @@ export default function BookingPage() {
                     </button>
                     <button
                       type="submit"
-                      className="btn-primary flex-[2] py-4 rounded-2xl"
+                      disabled={isSubmitting}
+                      className="btn-primary flex-[2] py-4 rounded-2xl flex items-center justify-center gap-2 disabled:opacity-70"
                     >
-                      Confirm Booking
+                      {isSubmitting ? (
+                        <>
+                          <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          Booking...
+                        </>
+                      ) : (
+                        'Confirm Booking'
+                      )}
                     </button>
                   </div>
                 </form>

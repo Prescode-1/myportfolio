@@ -28,21 +28,33 @@ export default function ContactForm() {
 
   const onSubmit = async (data: ContactFormData) => {
     try {
-      // Real submission to Backend
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout for Render cold starts
+
       const res = await fetch(`${API_URL}/api/leads`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
+        body: JSON.stringify(data),
+        signal: controller.signal,
       });
 
-      if (!res.ok) throw new Error('Failed to send message');
+      clearTimeout(timeoutId);
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => null);
+        throw new Error(errorData?.error || `Server error (${res.status})`);
+      }
       
       setIsSubmitted(true);
-      showToast('Message sent successfully!', 'success');
+      showToast('Message sent successfully! Check your email for confirmation.', 'success');
       reset();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Submission failed:', error);
-      showToast('Failed to send. Check your connection or server settings.', 'error');
+      if (error.name === 'AbortError') {
+        showToast('Request timed out. The server might be starting up — please try again in 30 seconds.', 'error');
+      } else {
+        showToast(`Failed to send: ${error.message}. Please try again.`, 'error');
+      }
     }
   };
 

@@ -40,6 +40,10 @@ app.get('/api/health', (req, res) => {
     status: 'ok',
     message: 'Backend is running successfully',
     database: isConnected ? 'connected' : 'disconnected',
+    email: {
+      configured: !!(process.env.GMAIL_USER && process.env.GMAIL_PASS),
+      user: process.env.GMAIL_USER ? `${process.env.GMAIL_USER.substring(0, 3)}***` : 'NOT SET',
+    },
     replicaSet: isConnected ? (mongoose.connection as any).db?.databaseName : null,
     host: isConnected ? (mongoose.connection as any).host : null
   });

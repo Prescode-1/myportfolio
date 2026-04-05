@@ -5,6 +5,7 @@ import SkillMatrix from '../components/SkillMatrix';
 import ProjectShowroom from '../components/ProjectShowroom';
 import Process from '../components/Process';
 import Services from '../components/Services';
+import Testimonials from '../components/Testimonials';
 import ConsultationBooking from '../components/ConsultationBooking';
 import ContactForm from '../components/ContactForm';
 import { motion } from 'motion/react';
@@ -23,6 +24,7 @@ export default function Home() {
       <ProjectShowroom />
       <Process />
       <Services />
+      <Testimonials />
       <ConsultationBooking />
       <ContactForm />
     </motion.div>

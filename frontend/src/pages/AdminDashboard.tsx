@@ -4,13 +4,15 @@ import {
   LayoutDashboard, Users, MessageSquare, BarChart3, Settings, 
   Plus, ArrowUpRight, ArrowDownRight, LogIn, LogOut, 
   Edit3, Trash2, Save, X, Globe, Briefcase, Phone, Mail, MapPin,
-  Calendar, Clock, Video, RotateCcw
+  Calendar, Clock, Video, RotateCcw, Star
 } from 'lucide-react';
+import AdminImageUpload from '../components/AdminImageUpload';
 import { useToast } from '../components/Toast';
 import { useContent } from '../context/ContentContext';
+import { Project, Skill, Service, Testimonial } from '../types';
 import { SERVICES, PROJECTS, SKILLS } from '../constants';
 
-type Tab = 'overview' | 'leads' | 'hero' | 'about' | 'projects' | 'services' | 'skills' | 'contact' | 'booking' | 'bookedSessions';
+type Tab = 'overview' | 'leads' | 'hero' | 'about' | 'projects' | 'services' | 'skills' | 'testimonials' | 'contact' | 'booking' | 'bookedSessions';
 
 export default function AdminDashboard() {
   const { content, updateContent } = useContent();
@@ -41,9 +43,10 @@ export default function AdminDashboard() {
   }, [user, activeTab, API_URL]);
 
   // Editing States
-  const [editingProject, setEditingProject] = useState<any>(null);
-  const [editingService, setEditingService] = useState<any>(null);
-  const [editingSkill, setEditingSkill] = useState<any>(null);
+  const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [editingService, setEditingService] = useState<Service | null>(null);
+  const [editingSkill, setEditingSkill] = useState<Skill | null>(null);
+  const [editingTestimonial, setEditingTestimonial] = useState<Testimonial | null>(null);
 
   // Hero State
   const [heroForm, setHeroForm] = useState(content.hero || { name: '', roles: [], description: '', image: '' });
@@ -126,6 +129,31 @@ export default function AdminDashboard() {
     showToast('Skill removed', 'success');
   };
 
+  const deleteTestimonial = (id: string) => {
+    updateContent({ testimonials: content.testimonials.filter(t => t.id !== id) });
+    showToast('Testimonial removed', 'success');
+  };
+
+  const handleImageUpload = async (file: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append('image', file);
+
+    try {
+      const res = await fetch(`${API_URL}/api/upload`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!res.ok) throw new Error('Upload failed');
+      const data = await res.json();
+      return `${API_URL}${data.url}`;
+    } catch (err) {
+      console.error('Upload error:', err);
+      showToast('Image upload failed', 'error');
+      return '';
+    }
+  };
+
   const resetServices = () => {
     updateContent({ services: SERVICES });
     showToast('Services reset to defaults', 'success');
@@ -176,6 +204,7 @@ export default function AdminDashboard() {
     { id: 'projects', label: 'Projects', icon: Briefcase },
     { id: 'services', label: 'Services', icon: Settings },
     { id: 'skills', label: 'Skills', icon: BarChart3 },
+    { id: 'testimonials', label: 'Testimonials', icon: MessageSquare },
     { id: 'contact', label: 'Contact Info', icon: Mail },
     { id: 'booking', label: 'Booking Settings', icon: Calendar },
     { id: 'bookedSessions', label: 'Booked Sessions', icon: Clock },
@@ -306,12 +335,11 @@ export default function AdminDashboard() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-bold text-slate-600 mb-2">Display Image (URL)</label>
-                      <input 
+                      <AdminImageUpload 
+                        label="Display Image"
                         value={heroForm.image}
-                        onChange={(e) => setHeroForm({...heroForm, image: e.target.value})}
-                        className="w-full bg-slate-50 border-none rounded-2xl px-6 py-4"
-                        placeholder="https://example.com/image.jpg"
+                        onChange={(url) => setHeroForm({...heroForm, image: url})}
+                        onUpload={handleImageUpload}
                       />
                     </div>
                     <div>
@@ -359,12 +387,11 @@ export default function AdminDashboard() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-bold text-slate-600 mb-2">About Section Image (URL)</label>
-                      <input 
+                      <AdminImageUpload 
+                        label="About Section Image"
                         value={aboutForm.image}
-                        onChange={(e) => setAboutForm({...aboutForm, image: e.target.value})}
-                        className="w-full bg-slate-50 border-none rounded-2xl px-6 py-4"
-                        placeholder="https://example.com/profile.jpg"
+                        onChange={(url) => setAboutForm({...aboutForm, image: url})}
+                        onUpload={handleImageUpload}
                       />
                     </div>
                     <div className="space-y-4">
@@ -463,12 +490,11 @@ export default function AdminDashboard() {
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-bold text-slate-600 mb-2">Project Picture (URL)</label>
-                            <input 
+                            <AdminImageUpload 
+                              label="Project Picture"
                               value={editingProject.image}
-                              onChange={(e) => setEditingProject({...editingProject, image: e.target.value})}
-                              className="w-full bg-slate-50 border-none rounded-2xl px-6 py-4"
-                              placeholder="https://example.com/image.jpg"
+                              onChange={(url) => setEditingProject({...editingProject, image: url})}
+                              onUpload={handleImageUpload}
                             />
                           </div>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -801,6 +827,150 @@ export default function AdminDashboard() {
                               </div>
                             </div>
                           ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+
+              {activeTab === 'testimonials' && (
+                <motion.div
+                  key="testimonials"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                >
+                  <div className="flex items-center justify-between mb-8">
+                    <h2 className="text-2xl font-extrabold text-dark">Client Testimonials</h2>
+                    <button 
+                      onClick={() => setEditingTestimonial({
+                        id: Math.random().toString(36).substr(2, 9),
+                        name: '',
+                        role: '',
+                        content: '',
+                        image: 'https://i.pravatar.cc/150?u=' + Math.random(),
+                        rating: 5
+                      })}
+                      className="btn-primary py-2 px-4 text-sm flex items-center gap-2"
+                    >
+                      <Plus size={18} />
+                      Add Testimonial
+                    </button>
+                  </div>
+
+                  {editingTestimonial && (
+                    <div className="fixed inset-0 bg-dark/20 backdrop-blur-sm z-50 flex items-center justify-center p-6">
+                      <div className="glass p-10 rounded-[40px] max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                        <div className="flex items-center justify-between mb-8">
+                          <h3 className="text-2xl font-extrabold text-dark">
+                            Edit Testimonial
+                          </h3>
+                          <button onClick={() => setEditingTestimonial(null)} className="text-slate-400 hover:text-dark">
+                            <X size={24} />
+                          </button>
+                        </div>
+                        <div className="space-y-6">
+                          <div>
+                            <AdminImageUpload 
+                              label="Client Photo"
+                              value={editingTestimonial.image}
+                              onChange={(url) => setEditingTestimonial({...editingTestimonial, image: url})}
+                              onUpload={handleImageUpload}
+                            />
+                          </div>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-bold text-slate-600 mb-2">Name</label>
+                              <input 
+                                value={editingTestimonial.name}
+                                onChange={(e) => setEditingTestimonial({...editingTestimonial, name: e.target.value})}
+                                className="w-full bg-slate-50 border-none rounded-2xl px-6 py-4"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-bold text-slate-600 mb-2">Role/Company</label>
+                              <input 
+                                value={editingTestimonial.role}
+                                onChange={(e) => setEditingTestimonial({...editingTestimonial, role: e.target.value})}
+                                className="w-full bg-slate-50 border-none rounded-2xl px-6 py-4"
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-bold text-slate-600 mb-2">Rating</label>
+                            <div className="flex gap-2">
+                              {[1, 2, 3, 4, 5].map((star) => (
+                                <button
+                                  key={star}
+                                  onClick={() => setEditingTestimonial({...editingTestimonial, rating: star})}
+                                  className={`p-2 rounded-xl transition-all ${
+                                    editingTestimonial.rating >= star 
+                                      ? 'bg-primary/10 text-primary' 
+                                      : 'bg-slate-50 text-slate-300'
+                                  }`}
+                                >
+                                  <Star size={24} fill={editingTestimonial.rating >= star ? 'currentColor' : 'none'} />
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-bold text-slate-600 mb-2">Testimonial Content</label>
+                            <textarea 
+                              value={editingTestimonial.content}
+                              onChange={(e) => setEditingTestimonial({...editingTestimonial, content: e.target.value})}
+                              rows={4}
+                              className="w-full bg-slate-50 border-none rounded-2xl px-6 py-4 resize-none"
+                            />
+                          </div>
+                          <button 
+                            onClick={() => {
+                              const exists = content.testimonials.find(t => t.id === editingTestimonial.id);
+                              if (exists) {
+                                updateContent({ testimonials: content.testimonials.map(t => t.id === editingTestimonial.id ? editingTestimonial : t) });
+                              } else {
+                                updateContent({ testimonials: [...content.testimonials, editingTestimonial] });
+                              }
+                              setEditingTestimonial(null);
+                              showToast('Testimonial saved!', 'success');
+                            }}
+                            className="btn-primary w-full py-4 rounded-2xl flex items-center justify-center gap-2"
+                          >
+                            <Save size={20} />
+                            Save Testimonial
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="grid gap-6">
+                    {content.testimonials.map((testimonial) => (
+                      <div key={testimonial.id} className="flex items-center gap-6 p-6 bg-slate-50 rounded-3xl">
+                        <img src={testimonial.image} className="w-16 h-16 rounded-2xl object-cover" alt="" />
+                        <div className="flex-grow">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h4 className="font-bold text-dark">{testimonial.name}</h4>
+                            <div className="flex text-primary">
+                              {Array.from({ length: testimonial.rating }).map((_, i) => (
+                                <Star key={i} size={12} fill="currentColor" />
+                              ))}
+                            </div>
+                          </div>
+                          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">{testimonial.role}</p>
+                          <p className="text-sm text-slate-500 line-clamp-2 italic">"{testimonial.content}"</p>
+                        </div>
+                        <div className="flex gap-2">
+                          <button 
+                            onClick={() => setEditingTestimonial(testimonial)}
+                            className="p-3 bg-white text-slate-600 rounded-xl hover:text-primary transition-all"
+                          >
+                            <Edit3 size={18} />
+                          </button>
+                          <button onClick={() => deleteTestimonial(testimonial.id)} className="p-3 bg-white text-slate-600 rounded-xl hover:text-red-500 transition-all">
+                            <Trash2 size={18} />
+                          </button>
                         </div>
                       </div>
                     ))}

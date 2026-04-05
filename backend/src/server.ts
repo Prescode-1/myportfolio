@@ -5,6 +5,9 @@ import dotenv from 'dotenv';
 import bookingRoutes from './routes/bookings';
 import contentRoutes from './routes/content';
 import leadRoutes from './routes/leads';
+import uploadRoutes from './routes/uploads';
+import path from 'path';
+import fs from 'fs';
 import { transporter } from './services/emailService';
 
 dotenv.config();
@@ -32,6 +35,14 @@ app.get('/', (req, res) => {
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/content', contentRoutes);
 app.use('/api/leads', leadRoutes);
+app.use('/api/upload', uploadRoutes);
+
+// Static uploads serving
+const uploadDir = path.join(__dirname, '../uploads');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+app.use('/uploads', express.static(uploadDir));
 
 // Simple health check route
 app.get('/api/health', (req, res) => {

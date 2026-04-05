@@ -4,6 +4,14 @@ export interface ISiteContent extends Document {
   projects: any[];
   services: any[];
   skills: any[];
+  testimonials: {
+    id: string;
+    name: string;
+    role: string;
+    content: string;
+    image: string;
+    rating: number;
+  }[];
   contactInfo: {
     email: string;
     phone: string;
@@ -38,6 +46,7 @@ const SiteContentSchema = new Schema({
   projects: { type: Array, default: [] },
   services: { type: Array, default: [] },
   skills: { type: Array, default: [] },
+  testimonials: { type: Array, default: [] },
   contactInfo: {
     email: String,
     phone: String,

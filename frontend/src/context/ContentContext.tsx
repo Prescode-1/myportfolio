@@ -1,12 +1,13 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useToast } from '../components/Toast';
 import { PROJECTS, SERVICES, SKILLS } from '../constants';
-import { Project, Service, Skill } from '../types';
+import { Project, Service, Skill, Testimonial } from '../types';
 
 interface SiteContent {
   projects: Project[];
   services: Service[];
   skills: Skill[];
+  testimonials: Testimonial[];
   contactInfo: {
     email: string;
     phone: string;
@@ -48,6 +49,24 @@ const fallbackDefaults: SiteContent = {
   projects: PROJECTS,
   services: SERVICES,
   skills: SKILLS,
+  testimonials: [
+    {
+      id: '1',
+      name: 'Sarah Johnson',
+      role: 'CEO at TechStream',
+      content: 'Working with this designer was an absolute pleasure. Their attention to detail and creative vision truly transformed our brand identity.',
+      image: 'https://i.pravatar.cc/150?u=sarah',
+      rating: 5
+    },
+    {
+      id: '2',
+      name: 'Michael Chen',
+      role: 'Product Manager',
+      content: 'The development speed and code quality were exceptional. Our MVP was delivered ahead of schedule and exceeded all expectations.',
+      image: 'https://i.pravatar.cc/150?u=michael',
+      rating: 5
+    }
+  ],
   contactInfo: {
     email: '',
     phone: '',
@@ -119,6 +138,7 @@ function mergeContent(base: SiteContent, data: any): SiteContent {
     projects: Array.isArray(data.projects) && data.projects.length > 0 ? data.projects : base.projects,
     services: Array.isArray(data.services) && data.services.length > 0 ? data.services : base.services,
     skills: Array.isArray(data.skills) && data.skills.length > 0 ? data.skills : base.skills,
+    testimonials: Array.isArray(data.testimonials) && data.testimonials.length > 0 ? data.testimonials : base.testimonials,
     contactInfo: { ...base.contactInfo, ...(data.contactInfo || {}) },
     hero: { ...base.hero, ...(data.hero || {}) },
     about: {

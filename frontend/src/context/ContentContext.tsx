@@ -41,6 +41,7 @@ interface ContentContextType {
   content: SiteContent;
   updateContent: (newContent: Partial<SiteContent>) => Promise<void>;
   isLoading: boolean;
+  getImageUrl: (path: string | undefined) => string;
 }
 
 // These are ONLY used as absolute last resort if there's no cached data AND no backend response.
@@ -250,10 +251,11 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     // 3. Sync to Backend
     try {
+      // Send ONLY what changed to the backend to prevent accidental overwrites of other fields
       const res = await fetch(`${API_URL}/api/content`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(merged)
+        body: JSON.stringify(newContent)
       });
 
       if (!res.ok) {
@@ -271,12 +273,21 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
       }
     } catch (err) {
       console.error('[ContentContext] ❌ Backend save failed:', err);
-      showToast('Warning: Changes saved locally but failed to sync to server. They will appear on this device but may not persist after the next deployment.', 'warning');
+      showToast('Warning: Changes saved locally but failed to sync to server.', 'warning');
     }
   };
 
+  const getImageUrl = (path: string | undefined): string => {
+    if (!path) return '';
+    if (path.startsWith('http')) return path;
+    if (path.startsWith('data:')) return path;
+    if (path.startsWith('/api/upload')) return `${API_URL}${path}`;
+    if (path.startsWith('uploads/')) return `${API_URL}/${path}`;
+    return path;
+  };
+
   return (
-    <ContentContext.Provider value={{ content, updateContent, isLoading }}>
+    <ContentContext.Provider value={{ content, updateContent, isLoading, getImageUrl }}>
       {children}
     </ContentContext.Provider>
   );

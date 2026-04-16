@@ -5,7 +5,7 @@ import { Project } from '../types';
 import { useContent } from '../context/ContentContext';
 
 export default function ProjectShowroom() {
-  const { content } = useContent();
+  const { content, getImageUrl } = useContent();
   const projects = content.projects;
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
 
@@ -45,7 +45,7 @@ export default function ProjectShowroom() {
             >
               <div className="relative h-64 overflow-hidden">
                 <img
-                  src={project.image}
+                  src={getImageUrl(project.image)}
                   alt={project.title}
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                 />
@@ -98,7 +98,7 @@ export default function ProjectShowroom() {
               <div className="grid md:grid-cols-2">
                 <div className="h-full min-h-[300px]">
                   <img
-                    src={selectedProject.image}
+                    src={getImageUrl(selectedProject.image)}
                     alt={selectedProject.title}
                     className="w-full h-full object-cover"
                   />

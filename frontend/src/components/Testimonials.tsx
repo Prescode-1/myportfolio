@@ -4,7 +4,7 @@ import { Star, Quote } from 'lucide-react';
 import { useContent } from '../context/ContentContext';
 
 export default function Testimonials() {
-  const { content } = useContent();
+  const { content, getImageUrl } = useContent();
   const testimonials = content.testimonials || [];
 
   if (testimonials.length === 0) return null;
@@ -52,7 +52,7 @@ export default function Testimonials() {
 
               <div className="flex items-center gap-4">
                 <img
-                  src={testimonial.image}
+                  src={getImageUrl(testimonial.image)}
                   alt={testimonial.name}
                   className="w-14 h-14 rounded-2xl object-cover shadow-md"
                 />

@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { Upload, X, Loader2, Image as ImageIcon } from 'lucide-react';
+import { useContent } from '../context/ContentContext';
 
 interface AdminImageUploadProps {
   value: string;
@@ -11,6 +12,7 @@ interface AdminImageUploadProps {
 export default function AdminImageUpload({ value, onChange, onUpload, label }: AdminImageUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { getImageUrl } = useContent();
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -34,7 +36,7 @@ export default function AdminImageUpload({ value, onChange, onUpload, label }: A
       <div className="flex flex-col gap-4">
         {value ? (
           <div className="relative group w-full aspect-video rounded-2xl overflow-hidden bg-slate-50 border-2 border-slate-100">
-            <img src={value} alt="Uploaded" className="w-full h-full object-cover" />
+            <img src={getImageUrl(value)} alt="Uploaded" className="w-full h-full object-cover" />
             <div className="absolute inset-0 bg-dark/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
               <button 
                 onClick={() => fileInputRef.current?.click()}

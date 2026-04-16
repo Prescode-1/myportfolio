@@ -4,7 +4,7 @@ import { Award, Users, Briefcase } from 'lucide-react';
 import { useContent } from '../context/ContentContext';
 
 export default function AboutMe() {
-  const { content } = useContent();
+  const { content, getImageUrl } = useContent();
   const { about } = content;
 
   if (!about) return null;
@@ -29,7 +29,7 @@ export default function AboutMe() {
         >
           <div className="relative z-10 glass p-4 rounded-[40px] rotate-3 hover:rotate-0 transition-transform duration-500">
             <img
-              src={about.image}
+              src={getImageUrl(about.image)}
               alt="About Me"
               className="w-full aspect-square object-cover rounded-[32px] shadow-2xl"
               referrerPolicy="no-referrer"

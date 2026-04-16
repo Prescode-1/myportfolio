@@ -6,7 +6,7 @@ import { Link } from 'react-router-dom';
 import { useContent } from '../context/ContentContext';
 
 export default function Hero() {
-  const { content } = useContent();
+  const { content, getImageUrl } = useContent();
   const { hero } = content;
   
   if (!hero) return null;
@@ -139,7 +139,7 @@ export default function Hero() {
           <div className="relative z-10">
             {/* 3D Character Illustration Placeholder */}
             <img
-              src={hero.image}
+              src={getImageUrl(hero.image)}
               alt="Hero Illustration"
               className="w-full max-w-lg aspect-[4/5] mx-auto object-cover drop-shadow-2xl rounded-3xl"
               referrerPolicy="no-referrer"

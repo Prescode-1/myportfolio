@@ -15,7 +15,7 @@ import { SERVICES, PROJECTS, SKILLS } from '../constants';
 type Tab = 'overview' | 'leads' | 'hero' | 'about' | 'projects' | 'services' | 'skills' | 'testimonials' | 'contact' | 'booking' | 'bookedSessions';
 
 export default function AdminDashboard() {
-  const { content, updateContent } = useContent();
+  const { content, updateContent, getImageUrl } = useContent();
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [leads, setLeads] = useState<any[]>([]);
   const [bookedSessions, setBookedSessions] = useState<any[]>([]);
@@ -146,7 +146,7 @@ export default function AdminDashboard() {
 
       if (!res.ok) throw new Error('Upload failed');
       const data = await res.json();
-      return `${API_URL}${data.url}`;
+      return data.url; // Return relative URL to store in DB
     } catch (err) {
       console.error('Upload error:', err);
       showToast('Image upload failed', 'error');
@@ -561,7 +561,7 @@ export default function AdminDashboard() {
                   <div className="grid gap-6">
                     {content.projects.map((project) => (
                       <div key={project.id} className="flex items-center gap-6 p-4 bg-slate-50 rounded-3xl">
-                        <img src={project.image} className="w-24 h-24 rounded-2xl object-cover" alt="" />
+                        <img src={getImageUrl(project.image)} className="w-24 h-24 rounded-2xl object-cover" alt="" />
                         <div className="flex-grow">
                           <h4 className="font-bold text-dark">{project.title}</h4>
                           <p className="text-sm text-slate-500 line-clamp-1">{project.description}</p>

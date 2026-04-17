@@ -2,6 +2,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { MessageSquare, X, Send, Phone, Mail } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useContent } from '../context/ContentContext';
 
 export default function FloatingContact() {
   const { content } = useContent();

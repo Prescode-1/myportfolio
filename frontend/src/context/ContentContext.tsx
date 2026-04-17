@@ -246,34 +246,56 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const merged = { ...content, ...newContent };
     setContent(merged);
 
-    // 2. IMMEDIATELY cache to localStorage (this is the key fix!)
+    // 2. IMMEDIATELY cache to localStorage
     saveCachedContent(merged);
 
-    // 3. Sync to Backend
-    try {
-      // Send ONLY what changed to the backend to prevent accidental overwrites of other fields
-      const res = await fetch(`${API_URL}/api/content`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newContent)
-      });
+    // 3. Sync to Backend with retry logic
+    const maxRetries = 3;
+    let success = false;
+    let lastError: any = null;
 
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`);
-      }
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout per attempt
 
-      const savedData = await res.json();
-      console.log('[ContentContext] ✅ Content saved to backend successfully');
-      
-      // Update cache with the authoritative server response
-      if (savedData && typeof savedData === 'object') {
-        const finalContent = mergeContent(fallbackDefaults, savedData);
-        setContent(finalContent);
-        saveCachedContent(finalContent);
+        const res = await fetch(`${API_URL}/api/content`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newContent),
+          signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+
+        const savedData = await res.json();
+        console.log(`[ContentContext] ✅ Content synced to backend (attempt ${attempt + 1})`);
+        
+        if (savedData && typeof savedData === 'object') {
+          const finalContent = mergeContent(fallbackDefaults, savedData);
+          setContent(finalContent);
+          saveCachedContent(finalContent);
+        }
+        
+        success = true;
+        break; // Exit retry loop on success
+      } catch (err) {
+        lastError = err;
+        console.warn(`[ContentContext] Sync attempt ${attempt + 1} failed:`, err);
+        if (attempt < maxRetries - 1) {
+          // Wait 2s, 4s between retries
+          await new Promise(resolve => setTimeout(resolve, 2000 * (attempt + 1)));
+        }
       }
-    } catch (err) {
-      console.error('[ContentContext] ❌ Backend save failed:', err);
-      showToast('Warning: Changes saved locally but failed to sync to server.', 'warning');
+    }
+
+    if (!success) {
+      console.error('[ContentContext] ❌ All sync attempts failed:', lastError);
+      showToast('Warning: Connection unstable. Changes saved on this device but might not reach server yet.', 'warning');
     }
   };
 

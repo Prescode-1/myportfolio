@@ -4,6 +4,7 @@ import { MessageSquare, X, Send, Phone, Mail } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export default function FloatingContact() {
+  const { content } = useContent();
   const [isOpen, setIsOpen] = React.useState(false);
 
   return (
@@ -36,7 +37,7 @@ export default function FloatingContact() {
               </Link>
               
               <a 
-                href="mailto:homeyu324@gmail.com"
+                href={`mailto:${content.contactInfo.email}`}
                 className="flex items-center gap-3 p-3 bg-slate-50 text-slate-600 rounded-2xl font-bold hover:bg-slate-100 transition-all border border-slate-100"
               >
                 <div className="w-8 h-8 bg-white rounded-xl flex items-center justify-center shadow-sm">

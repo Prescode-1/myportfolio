@@ -1,13 +1,13 @@
 {
   "name": "portfolio-backend",
   "version": "1.0.0",
-  "description": "",
-  "main": "src/server.ts",
+  "description": "Portfolio backend API deployed on Vercel",
+  "main": "api/index.ts",
   "scripts": {
     "start": "node dist/server.js",
     "dev": "tsx src/server.ts",
     "build": "tsc",
-    "render-start": "npm run build && npm start"
+    "vercel-build": "echo 'Build handled by @vercel/node'"
   },
   "dependencies": {
     "@types/nodemailer": "^7.0.11",

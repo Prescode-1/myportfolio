@@ -15,14 +15,16 @@ dotenv.config();
 const app = express();
 const PORT = Number(process.env.PORT) || 5000;
 
-// Verify SMTP connection on startup
-transporter.verify((error: any, success: any) => {
-  if (error) {
-    console.error('❌ SMTP connection failed:', error);
-  } else {
-    console.log('✅ SMTP server is ready to send emails');
-  }
-});
+// Verify SMTP connection (only in non-serverless / local dev)
+if (process.env.NODE_ENV !== 'production') {
+  transporter.verify((error: any, success: any) => {
+    if (error) {
+      console.error('❌ SMTP connection failed:', error);
+    } else {
+      console.log('✅ SMTP server is ready to send emails');
+    }
+  });
+}
 
 // Middleware
 app.use(cors());

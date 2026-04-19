@@ -41,7 +41,7 @@ export default function BookingPage() {
   const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
   const times = content.booking.availableTimes;
 
-  const API_URL = (import.meta as any).env?.VITE_API_URL || "https://myportfolio-07kr.onrender.com";
+  const API_URL = "https://backend-rho-nine-57.vercel.app";
 
   const prevMonth = () => {
     // Don't go to past months

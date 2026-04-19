@@ -40,10 +40,11 @@ export default function Navbar() {
         'max-w-7xl mx-auto glass rounded-2xl px-6 py-3 flex items-center justify-between transition-all',
         scrolled && 'shadow-lg'
       )}>
-        <Link to="/" className="text-xl sm:text-2xl font-extrabold text-dark flex items-center gap-2 group">
-          <span className="bg-primary text-white w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl shadow-lg shadow-primary/30 group-hover:scale-110 transition-transform">P</span>
-          <span className="inline tracking-tighter">Pres<span className="text-primary">Code</span></span>
+        <Link to="/" className="text-lg sm:text-2xl font-[900] text-dark flex items-center gap-2.5 group">
+          <span className="bg-primary text-white w-8 h-8 sm:w-11 sm:h-11 flex items-center justify-center rounded-xl shadow-lg shadow-primary/30 group-hover:rotate-12 transition-all duration-500">P</span>
+          <span className="inline tracking-tighter">Pres<span className="text-primary font-black">Code</span></span>
         </Link>
+
 
         {/* Desktop Nav */}
         <div className="hidden md:flex items-center gap-2 bg-slate-50/50 p-1.5 rounded-2xl border border-slate-100/50 relative">

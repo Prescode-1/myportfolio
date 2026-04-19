@@ -303,10 +303,21 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (!path) return '';
     if (path.startsWith('http')) return path;
     if (path.startsWith('data:')) return path;
-    if (path.startsWith('/api/upload')) return `${API_URL}${path}`;
-    if (path.startsWith('uploads/')) return `${API_URL}/${path}`;
-    return path;
+    
+    // Ensure relative paths have a leading slash for consistent root-relative loading
+    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+    
+    // If it's a backend-managed path, prepend the API_URL
+    if (normalizedPath.startsWith('/api/upload') || normalizedPath.startsWith('/uploads/')) {
+      // Add a timestamp to bypass aggressive caching for dynamic content
+      const separator = normalizedPath.includes('?') ? '&' : '?';
+      return `${API_URL}${normalizedPath}${separator}t=${Date.now()}`;
+    }
+    
+    // For local static assets in the public folder, return the root-relative path
+    return normalizedPath;
   };
+
 
   return (
     <ContentContext.Provider value={{ content, updateContent, isLoading, getImageUrl }}>

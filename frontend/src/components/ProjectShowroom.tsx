@@ -48,10 +48,6 @@ export default function ProjectShowroom() {
                   src={getImageUrl(project.image)}
                   alt={project.title}
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                  referrerPolicy="no-referrer"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&q=80&w=800';
-                  }}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-dark/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-6">
                   <div className="flex gap-3">
@@ -105,10 +101,6 @@ export default function ProjectShowroom() {
                     src={getImageUrl(selectedProject.image)}
                     alt={selectedProject.title}
                     className="w-full h-full object-cover"
-                    referrerPolicy="no-referrer"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&q=80&w=800';
-                    }}
                   />
                 </div>
                 <div className="p-10 flex flex-col justify-center">

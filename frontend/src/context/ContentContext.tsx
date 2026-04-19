@@ -309,9 +309,7 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     
     // If it's a backend-managed path, prepend the API_URL
     if (normalizedPath.startsWith('/api/upload') || normalizedPath.startsWith('/uploads/')) {
-      // Add a timestamp to bypass aggressive caching for dynamic content
-      const separator = normalizedPath.includes('?') ? '&' : '?';
-      return `${API_URL}${normalizedPath}${separator}t=${Date.now()}`;
+      return `${API_URL}${normalizedPath}`;
     }
     
     // For local static assets in the public folder, return the root-relative path

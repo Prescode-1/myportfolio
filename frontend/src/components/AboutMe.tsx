@@ -32,10 +32,6 @@ export default function AboutMe() {
               src={getImageUrl(about.image)}
               alt="About Me"
               className="w-full aspect-square object-cover rounded-[32px] shadow-2xl"
-              referrerPolicy="no-referrer"
-              onError={(e) => {
-                (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=800';
-              }}
             />
           </div>
           {/* Decorative elements */}

@@ -145,6 +145,9 @@ export default function Hero() {
               alt="Hero Illustration"
               className="w-full max-w-xl aspect-[4/5] mx-auto object-cover drop-shadow-2xl rounded-[60px] shadow-2xl border-[16px] border-white/50"
               referrerPolicy="no-referrer"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?auto=format&fit=crop&q=80&w=800';
+              }}
             />
             
             {/* Floating Elements */}

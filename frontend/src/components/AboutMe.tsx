@@ -33,6 +33,9 @@ export default function AboutMe() {
               alt="About Me"
               className="w-full aspect-[4/5] sm:aspect-square object-cover rounded-[32px]"
               referrerPolicy="no-referrer"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=800';
+              }}
             />
             <div className="absolute -bottom-6 -right-6 lg:-right-10 bg-primary text-white p-6 rounded-3xl shadow-2xl hidden sm:block">
                <div className="text-3xl font-black">5+</div>

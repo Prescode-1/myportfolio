@@ -23,7 +23,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(false);
   const { showToast } = useToast();
 
-  const API_URL = (import.meta as any).env?.VITE_API_URL || "https://backend-rho-nine-57.vercel.app";
+  const API_URL = "https://backend-rho-nine-57.vercel.app";
 
   // Fetch Data
   React.useEffect(() => {

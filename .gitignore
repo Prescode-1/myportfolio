@@ -31,3 +31,5 @@ yarn-error.log*
 
 # Image Uploads (Stored on Server)
 backend/uploads/
+
+.vercel

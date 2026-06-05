@@ -42,6 +42,14 @@ app.get('/api/health', async (req, res) => {
   });
 });
 
+// Fallback for unmatched routes
+app.use((req, res) => {
+  res.status(404).json({ 
+    error: `Route not found: ${req.method} ${req.originalUrl || req.url}`,
+    message: "If you are looking for the API health status, visit /api/health"
+  });
+});
+
 // ---------- MongoDB Connection Caching for Serverless ----------
 // In serverless, each invocation may reuse a "warm" container.
 // We cache the connection promise so we don't open new connections every request.

@@ -19,7 +19,7 @@ type ContactFormData = z.infer<typeof contactSchema>;
 
 export default function ContactForm() {
   const { content } = useContent();
-  const API_URL = "https://backend-rho-nine-57.vercel.app";
+  const API_URL = import.meta.env.VITE_API_URL || "https://myportfolio-backend-phi.vercel.app";
   const [isSubmitted, setIsSubmitted] = useState(false);
   const { showToast } = useToast();
   const { register, handleSubmit, formState: { errors, isSubmitting }, reset } = useForm<ContactFormData>({

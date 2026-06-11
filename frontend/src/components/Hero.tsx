@@ -71,7 +71,7 @@ export default function Hero() {
                 />
               ))}
             </div>
-            <span className="text-sm font-bold text-slate-500">Trusted by 100+ Clients</span>
+            <span className="text-sm font-bold text-slate-500">Trusted by 10+ Clients</span>
           </div>
 
           <h1 className="text-5xl md:text-7xl font-extrabold text-dark leading-tight mb-6">

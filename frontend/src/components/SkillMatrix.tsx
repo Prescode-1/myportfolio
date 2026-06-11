@@ -14,14 +14,9 @@ export default function SkillMatrix() {
     <section className="py-24 px-6 bg-white/50">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-16">
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-4xl md:text-5xl font-extrabold text-dark mb-4"
-          >
+          <h2 className="text-4xl md:text-5xl font-extrabold text-dark mb-4">
             My <span className="text-primary">Skills</span>
-          </motion.h2>
+          </h2>
           <p className="text-slate-500 max-w-2xl mx-auto">
             Technologies and tools I work with to create amazing web experiences.
           </p>
@@ -46,13 +41,8 @@ export default function SkillMatrix() {
             // @ts-ignore
             const Icon = Icons[skill.icon] || Icons.Code2;
             return (
-              <motion.div
+              <div
                 key={skill.name}
-                layout
-                initial={{ opacity: 0, scale: 0.9 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
                 className="glass p-6 rounded-3xl group hover:border-primary/50 transition-all"
               >
                 <div className="flex items-center gap-4 mb-4">
@@ -71,16 +61,13 @@ export default function SkillMatrix() {
                     <span className="text-primary">{skill.proficiency}%</span>
                   </div>
                   <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                    <motion.div
-                      initial={{ width: 0 }}
-                      whileInView={{ width: `${skill.proficiency}%` }}
-                      viewport={{ once: true }}
-                      transition={{ duration: 1, delay: 0.5 }}
+                    <div
+                      style={{ width: `${skill.proficiency}%` }}
                       className="h-full bg-primary rounded-full"
                     />
                   </div>
                 </div>
-              </motion.div>
+              </div>
             );
           })}
         </div>

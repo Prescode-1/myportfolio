@@ -6,11 +6,11 @@ dotenv.config();
 // Validate email config on module load
 const GMAIL_USER = process.env.GMAIL_USER;
 const GMAIL_PASS = process.env.GMAIL_PASS;
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
 
-if (!GMAIL_USER || !GMAIL_PASS) {
+if (!RESEND_API_KEY && (!GMAIL_USER || !GMAIL_PASS)) {
   console.error('⚠️ WARNING: GMAIL_USER or GMAIL_PASS environment variables are missing!');
-  console.error('⚠️ Email notifications will NOT work.');
-  console.error('⚠️ Set these in your Render dashboard under Environment Variables.');
+  console.error('⚠️ Email notifications will NOT work unless RESEND_API_KEY is configured.');
 }
 
 // Create transporter with timeout settings
@@ -76,15 +76,63 @@ END:VCALENDAR`;
   }
 };
 
-// Helper: send a single email with retry
+// Helper: send a single email with retry (supporting Resend HTTP or Nodemailer SMTP)
 async function sendMailWithRetry(mailOptions: any, label: string, maxRetries = 2): Promise<void> {
+  const RESEND_API_KEY = process.env.RESEND_API_KEY;
+
+  if (RESEND_API_KEY) {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const body: any = {
+          from: mailOptions.from,
+          to: mailOptions.to,
+          subject: mailOptions.subject,
+          html: mailOptions.html,
+        };
+
+        if (mailOptions.icalEvent) {
+          body.attachments = [{
+            content: Buffer.from(mailOptions.icalEvent.content).toString('base64'),
+            filename: mailOptions.icalEvent.filename || 'invitation.ics',
+          }];
+        }
+
+        const res = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${RESEND_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(body),
+        });
+
+        if (!res.ok) {
+          const errText = await res.text().catch(() => '');
+          throw new Error(`Resend API HTTP ${res.status}: ${errText}`);
+        }
+
+        console.log(`✅ ${label} sent via Resend API (attempt ${attempt})`);
+        return;
+      } catch (error: any) {
+        console.error(`❌ ${label} via Resend failed (attempt ${attempt}/${maxRetries}):`, error.message);
+        if (attempt < maxRetries) {
+          await new Promise(resolve => setTimeout(resolve, 1500));
+        } else {
+          throw error;
+        }
+      }
+    }
+    return;
+  }
+
+  // Fallback to Gmail SMTP
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       await transporter.sendMail(mailOptions);
-      console.log(`✅ ${label} sent (attempt ${attempt})`);
+      console.log(`✅ ${label} sent via SMTP (attempt ${attempt})`);
       return;
     } catch (error: any) {
-      console.error(`❌ ${label} failed (attempt ${attempt}/${maxRetries}):`, error.message);
+      console.error(`❌ ${label} via SMTP failed (attempt ${attempt}/${maxRetries}):`, error.message);
       
       if (attempt < maxRetries) {
         // Wait before retry
@@ -97,8 +145,11 @@ async function sendMailWithRetry(mailOptions: any, label: string, maxRetries = 2
 }
 
 export const sendBookingNotification = async (booking: any) => {
+  const RESEND_API_KEY = process.env.RESEND_API_KEY;
+  const fromEmail = process.env.RESEND_FROM_EMAIL || GMAIL_USER || 'onboarding@resend.dev';
+
   // Guard: skip if email is not configured
-  if (!GMAIL_USER || !GMAIL_PASS) {
+  if (!RESEND_API_KEY && (!GMAIL_USER || !GMAIL_PASS)) {
     console.error('❌ Email not configured — skipping booking notification');
     return;
   }
@@ -106,8 +157,8 @@ export const sendBookingNotification = async (booking: any) => {
   const icsContent = generateICS(booking);
 
   const adminMailOptions = {
-    from: `"Portfolio Alerts" <${GMAIL_USER}>`,
-    to: GMAIL_USER,
+    from: `"Portfolio Alerts" <${fromEmail}>`,
+    to: GMAIL_USER || fromEmail,
     subject: `📅 New Booking: ${booking.service} with ${booking.name}`,
     html: `
       <div style="font-family: sans-serif; line-height: 1.6; color: #334155;">
@@ -132,7 +183,7 @@ export const sendBookingNotification = async (booking: any) => {
   };
 
   const clientMailOptions = {
-    from: `"PresCode Consultation" <${GMAIL_USER}>`,
+    from: `"PresCode Consultation" <${fromEmail}>`,
     to: booking.email,
     subject: `✅ Booking Confirmed: ${booking.service}`,
     html: `
@@ -168,12 +219,11 @@ export const sendBookingNotification = async (booking: any) => {
   };
 
   try {
-    // Send admin notification first (with retry)
-    await sendMailWithRetry(adminMailOptions, 'Admin booking notification');
-    
-    // Then send client confirmation (with retry)
-    await sendMailWithRetry(clientMailOptions, 'Client booking confirmation');
-    
+    // Send admin notification and client confirmation in parallel
+    await Promise.all([
+      sendMailWithRetry(adminMailOptions, 'Admin booking notification'),
+      sendMailWithRetry(clientMailOptions, 'Client booking confirmation')
+    ]);
     console.log('✅ All booking emails sent successfully');
   } catch (error) {
     console.error('❌ Email notification failed after retries:', error);
@@ -182,15 +232,18 @@ export const sendBookingNotification = async (booking: any) => {
 };
 
 export const sendContactMessage = async (message: any) => {
+  const RESEND_API_KEY = process.env.RESEND_API_KEY;
+  const fromEmail = process.env.RESEND_FROM_EMAIL || GMAIL_USER || 'onboarding@resend.dev';
+
   // Guard: skip if email is not configured
-  if (!GMAIL_USER || !GMAIL_PASS) {
+  if (!RESEND_API_KEY && (!GMAIL_USER || !GMAIL_PASS)) {
     console.error('❌ Email not configured — skipping contact notification');
     return;
   }
 
   const adminMailOptions = {
-    from: `"Portfolio Lead" <${GMAIL_USER}>`,
-    to: GMAIL_USER,
+    from: `"Portfolio Lead" <${fromEmail}>`,
+    to: GMAIL_USER || fromEmail,
     subject: `✉️ New Message from ${message.fullName}`,
     html: `
       <div style="font-family: sans-serif; line-height: 1.6; color: #334155;">
@@ -208,7 +261,7 @@ export const sendContactMessage = async (message: any) => {
   };
 
   const clientMailOptions = {
-    from: `"PresCode Consultation" <${GMAIL_USER}>`,
+    from: `"PresCode Consultation" <${fromEmail}>`,
     to: message.email,
     subject: `📩 Message Received: Thanks for reaching out!`,
     html: `
@@ -231,8 +284,11 @@ export const sendContactMessage = async (message: any) => {
   };
 
   try {
-    await sendMailWithRetry(adminMailOptions, 'Admin contact notification');
-    await sendMailWithRetry(clientMailOptions, 'Client auto-reply');
+    // Send contact notification and client auto-reply in parallel
+    await Promise.all([
+      sendMailWithRetry(adminMailOptions, 'Admin contact notification'),
+      sendMailWithRetry(clientMailOptions, 'Client auto-reply')
+    ]);
     console.log('✅ Contact emails sent successfully');
   } catch (error) {
     console.error('❌ Contact email failure after retries:', error);

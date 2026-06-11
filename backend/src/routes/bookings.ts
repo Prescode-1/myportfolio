@@ -21,12 +21,15 @@ router.post('/', async (req: Request, res: Response) => {
     const newBooking = new Booking(req.body);
     const savedBooking = await newBooking.save();
     
-    // Send email notification in the background (DO NOT AWAIT)
-    sendBookingNotification(savedBooking)
-      .then(() => console.log(`✅ Email sent to admin for: ${savedBooking.service}`))
-      .catch(err => console.error('❌ Email background error:', err.message));
+    // Send email notification (AWAIT to ensure Vercel completes sending before freezing container)
+    try {
+      await sendBookingNotification(savedBooking);
+      console.log(`✅ Email sent for booking: ${savedBooking.service}`);
+    } catch (err: any) {
+      console.error('❌ Email notification error:', err.message);
+    }
     
-    // Respond instantly to the user
+    // Respond to the user
     res.status(201).json(savedBooking);
   } catch (error) {
     console.error('Error saving booking:', error);

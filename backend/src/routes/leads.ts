@@ -21,12 +21,15 @@ router.post('/', async (req: Request, res: Response) => {
     const newLead = new Lead(req.body);
     const savedLead = await newLead.save();
     
-    // Send email notification in the background (DO NOT AWAIT)
-    sendContactMessage(savedLead)
-      .then(() => console.log(`✅ Email sent to admin for lead from: ${savedLead.fullName}`))
-      .catch(err => console.error('❌ Email background error:', err.message));
+    // Send email notification (AWAIT to ensure Vercel completes sending before freezing container)
+    try {
+      await sendContactMessage(savedLead);
+      console.log(`✅ Email sent for lead from: ${savedLead.fullName}`);
+    } catch (err: any) {
+      console.error('❌ Email notification error:', err.message);
+    }
     
-    // Respond instantly to the user
+    // Respond to the user
     res.status(201).json(savedLead);
   } catch (error) {
     console.error('Error saving lead:', error);

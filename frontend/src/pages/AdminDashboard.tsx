@@ -62,7 +62,8 @@ export default function AdminDashboard() {
     instagram: '',
     linkedin: '',
     twitter: '',
-    github: ''
+    github: '',
+    cvUrl: ''
   });
   
   // Booking State
@@ -773,7 +774,7 @@ export default function AdminDashboard() {
                             <label className="block text-sm font-bold text-slate-600 mb-2">Category</label>
                             <select 
                               value={editingSkill.category}
-                              onChange={(e) => setEditingSkill({...editingSkill, category: e.target.value})}
+                              onChange={(e) => setEditingSkill({...editingSkill, category: e.target.value as any})}
                               className="w-full bg-slate-50 border-none rounded-2xl px-6 py-4"
                             >
                               <option value="frontend">Frontend</option>

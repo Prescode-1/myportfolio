@@ -12,7 +12,32 @@ dotenv.config();
 const app = express();
 
 // Middleware
-app.use(cors());
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  process.env.FRONTEND_URL
+].filter(Boolean) as string[];
+
+const corsOptions: cors.CorsOptions = {
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps, curl, etc.)
+    if (!origin) return callback(null, true);
+    
+    const isAllowed = allowedOrigins.includes(origin) ||
+      /^https:\/\/myportfolio-[a-z0-9-]+\.vercel\.app$/.test(origin) ||
+      /^https:\/\/myportfolio\.vercel\.app$/.test(origin);
+      
+    if (isAllowed) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  optionsSuccessStatus: 200
+};
+
+app.use(cors(corsOptions));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
@@ -53,24 +78,32 @@ app.use((req, res) => {
 // ---------- MongoDB Connection Caching for Serverless ----------
 // In serverless, each invocation may reuse a "warm" container.
 // We cache the connection promise so we don't open new connections every request.
-let cachedConnection: typeof mongoose | null = null;
+let cachedPromise: Promise<typeof mongoose> | null = null;
 
 async function connectDB() {
-  if (cachedConnection && mongoose.connection.readyState === 1) {
-    return cachedConnection;
+  if (mongoose.connection.readyState === 1) {
+    return mongoose;
   }
 
-  const MONGODB_URI = process.env.MONGODB_URI || '';
-  if (!MONGODB_URI) {
-    throw new Error('MONGODB_URI is not defined');
+  if (!cachedPromise) {
+    const MONGODB_URI = process.env.MONGODB_URI || '';
+    if (!MONGODB_URI) {
+      throw new Error('MONGODB_URI is not defined');
+    }
+
+    console.log('[Database] Connecting to MongoDB...');
+    cachedPromise = mongoose.connect(MONGODB_URI, {
+      bufferCommands: false,
+    }).then((m) => {
+      console.log('✅ Connected to MongoDB');
+      return m;
+    }).catch((err) => {
+      cachedPromise = null; // Reset cache on error so next request tries again
+      throw err;
+    });
   }
 
-  cachedConnection = await mongoose.connect(MONGODB_URI, {
-    bufferCommands: false,
-  });
-
-  console.log('✅ Connected to MongoDB');
-  return cachedConnection;
+  return cachedPromise;
 }
 
 // Wrap the Express app to ensure DB is connected before handling requests

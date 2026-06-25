@@ -114,7 +114,7 @@ export default function Hero() {
                 { Icon: Linkedin, url: content.contactInfo.linkedin },
                 { Icon: Twitter, url: content.contactInfo.twitter },
                 { Icon: Instagram, url: content.contactInfo.instagram }
-              ].map(({ Icon, url }, i) => (
+              ].filter(({ url }) => url && url.trim() !== '' && url !== '#').map(({ Icon, url }, i) => (
                 <a
                   key={i}
                   href={url}

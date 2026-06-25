@@ -27,8 +27,8 @@ export default function Footer() {
                 { Icon: Linkedin, url: content.contactInfo.linkedin },
                 { Icon: Twitter, url: content.contactInfo.twitter },
                 { Icon: Instagram, url: content.contactInfo.instagram },
-                { Icon: Mail, url: `mailto:${content.contactInfo.email}` }
-              ].map(({ Icon, url }, i) => (
+                { Icon: Mail, url: content.contactInfo.email ? `mailto:${content.contactInfo.email}` : '' }
+              ].filter(({ url }) => url && url.trim() !== '' && url !== '#' && url !== 'mailto:').map(({ Icon, url }, i) => (
                 <a
                   key={i}
                   href={url}

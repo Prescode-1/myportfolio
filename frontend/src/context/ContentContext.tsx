@@ -175,8 +175,8 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
         console.log(`[ContentContext] Fetching from backend (attempt ${attempt + 1}/${maxRetries})...`);
         
         const controller = new AbortController();
-        // Give Render's free tier time to wake up (60s timeout)
-        const timeoutId = setTimeout(() => controller.abort(), 60000);
+        // Give Vercel serverless time to cold-start (30s timeout)
+        const timeoutId = setTimeout(() => controller.abort(), 30000);
 
         const res = await fetch(`${API_URL}/api/content?t=${Date.now()}`, {
           signal: controller.signal,
@@ -200,6 +200,10 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
         if (data && typeof data === 'object' && Object.keys(data).length > 0) {
           // Backend returned real data — use it as the source of truth
           const merged = mergeContent(fallbackDefaults, data);
+          // Safety: ensure hero.roles is never empty (prevents typewriter crash)
+          if (!merged.hero.roles || merged.hero.roles.length === 0) {
+            merged.hero.roles = ['Developer'];
+          }
           setContent(merged);
           saveCachedContent(merged);
           console.log('[ContentContext] ✅ Backend data loaded and cached successfully');
@@ -208,6 +212,9 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
           // Keep whatever we currently have (cache or defaults)
           console.log('[ContentContext] Backend returned empty — using cached/default content');
         }
+
+        // Success — done loading
+        if (isMounted) setIsLoading(false);
       } catch (err: any) {
         console.error(`[ContentContext] Fetch attempt ${attempt + 1} failed:`, err.message);
         
@@ -218,7 +225,7 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
           setTimeout(() => {
             if (isMounted) fetchContent(attempt + 1);
           }, delay);
-          return; // Don't set loading to false yet
+          return; // Don't set loading to false — retry is pending
         } else {
           // All retries exhausted — we're using cached data or defaults
           if (cachedContent) {
@@ -226,10 +233,8 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
           } else {
             console.log('[ContentContext] ⚠️ Using fallback defaults (no cache, backend unreachable)');
           }
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
+          // All retries exhausted — done loading
+          if (isMounted) setIsLoading(false);
         }
       }
     };
@@ -295,7 +300,7 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     if (!success) {
       console.error('[ContentContext] ❌ All sync attempts failed:', lastError);
-      showToast('Warning: Connection unstable. Changes saved on this device but might not reach server yet.', 'warning');
+      showToast('Warning: Connection unstable. Changes saved on this device but might not reach server yet.', 'error');
     }
   };
 

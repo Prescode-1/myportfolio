@@ -3,6 +3,7 @@ import { useToast } from '../components/Toast';
 import { PROJECTS, SERVICES, SKILLS } from '../constants';
 import { Project, Service, Skill, Testimonial } from '../types';
 import { API_URL } from '../config/api';
+import { supabase } from '../lib/supabaseClient';
 
 interface SiteContent {
   projects: Project[];
@@ -167,83 +168,60 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   useEffect(() => {
     let isMounted = true;
-    const maxRetries = 3;
 
-    const fetchContent = async (attempt: number) => {
+    const fetchContent = async () => {
       try {
-        console.log(`[ContentContext] Fetching from backend (attempt ${attempt + 1}/${maxRetries})...`);
-        
-        const controller = new AbortController();
-        // Give Vercel serverless time to cold-start (30s timeout)
-        const timeoutId = setTimeout(() => controller.abort(), 30000);
+        console.log('[ContentContext] Fetching site_content from Supabase...');
+        const { data: dbRow, error } = await supabase
+          .from('site_content')
+          .select('data')
+          .eq('id', 'main')
+          .maybeSingle();
 
-        const res = await fetch(`${API_URL}/api/content?t=${Date.now()}`, {
-          signal: controller.signal,
-          headers: {
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache',
-            'Expires': '0'
-          }
-        });
-
-        clearTimeout(timeoutId);
-
-        if (!res.ok) {
-          throw new Error(`HTTP ${res.status}`);
+        if (error) {
+          console.warn('[ContentContext] Supabase fetch error, trying API fallback:', error.message);
+          throw error;
         }
-
-        const data = await res.json();
 
         if (!isMounted) return;
 
-        if (data && typeof data === 'object' && Object.keys(data).length > 0) {
-          // Backend returned real data — use it as the source of truth
-          const merged = mergeContent(fallbackDefaults, data);
-          // Safety: ensure hero.roles is never empty (prevents typewriter crash)
+        if (dbRow?.data && typeof dbRow.data === 'object' && Object.keys(dbRow.data).length > 0) {
+          const merged = mergeContent(fallbackDefaults, dbRow.data);
           if (!merged.hero.roles || merged.hero.roles.length === 0) {
             merged.hero.roles = ['Developer'];
           }
           setContent(merged);
           saveCachedContent(merged);
-          console.log('[ContentContext] ✅ Backend data loaded and cached successfully');
+          console.log('[ContentContext] ✅ Supabase content loaded and cached successfully');
         } else {
-          // Backend returned null/empty — this means no content has ever been saved
-          // Keep whatever we currently have (cache or defaults)
-          console.log('[ContentContext] Backend returned empty — using cached/default content');
+          console.log('[ContentContext] Supabase returned empty — using cached/default content');
         }
-
-        // Success — done loading
-        if (isMounted) setIsLoading(false);
       } catch (err: any) {
-        console.error(`[ContentContext] Fetch attempt ${attempt + 1} failed:`, err.message);
-        
-        if (isMounted && attempt < maxRetries - 1) {
-          // Retry after increasing delay (2s, 5s)
-          const delay = attempt === 0 ? 2000 : 5000;
-          console.log(`[ContentContext] Retrying in ${delay / 1000}s...`);
-          setTimeout(() => {
-            if (isMounted) fetchContent(attempt + 1);
-          }, delay);
-          return; // Don't set loading to false — retry is pending
-        } else {
-          // All retries exhausted — we're using cached data or defaults
-          if (cachedContent) {
-            console.log('[ContentContext] ⚠️ Using cached content (backend unreachable)');
-          } else {
-            console.log('[ContentContext] ⚠️ Using fallback defaults (no cache, backend unreachable)');
+        // Fallback to legacy REST backend if configured
+        try {
+          const res = await fetch(`${API_URL}/api/content?t=${Date.now()}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data && typeof data === 'object' && isMounted) {
+              const merged = mergeContent(fallbackDefaults, data);
+              setContent(merged);
+              saveCachedContent(merged);
+            }
           }
-          // All retries exhausted — done loading
-          if (isMounted) setIsLoading(false);
+        } catch (apiErr) {
+          console.warn('[ContentContext] API fallback failed or unneeded');
         }
+      } finally {
+        if (isMounted) setIsLoading(false);
       }
     };
 
-    fetchContent(0);
+    fetchContent();
 
     return () => {
       isMounted = false;
     };
-  }, [API_URL]);
+  }, []);
 
   const updateContent = async (newContent: Partial<SiteContent>) => {
     // 1. Update local state for instant feedback
@@ -253,53 +231,33 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     // 2. IMMEDIATELY cache to localStorage
     saveCachedContent(merged);
 
-    // 3. Sync to Backend with retry logic
-    const maxRetries = 3;
-    let success = false;
-    let lastError: any = null;
-
-    for (let attempt = 0; attempt < maxRetries; attempt++) {
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout per attempt
-
-        const res = await fetch(`${API_URL}/api/content`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(newContent),
-          signal: controller.signal
+    // 3. Sync to Supabase
+    try {
+      console.log('[ContentContext] Syncing content to Supabase...');
+      const { error } = await supabase
+        .from('site_content')
+        .upsert({
+          id: 'main',
+          data: merged,
+          updated_at: new Date().toISOString()
         });
 
-        clearTimeout(timeoutId);
-
-        if (!res.ok) {
-          throw new Error(`HTTP ${res.status}`);
-        }
-
-        const savedData = await res.json();
-        console.log(`[ContentContext] ✅ Content synced to backend (attempt ${attempt + 1})`);
-        
-        if (savedData && typeof savedData === 'object') {
-          const finalContent = mergeContent(fallbackDefaults, savedData);
-          setContent(finalContent);
-          saveCachedContent(finalContent);
-        }
-        
-        success = true;
-        break; // Exit retry loop on success
-      } catch (err) {
-        lastError = err;
-        console.warn(`[ContentContext] Sync attempt ${attempt + 1} failed:`, err);
-        if (attempt < maxRetries - 1) {
-          // Wait 2s, 4s between retries
-          await new Promise(resolve => setTimeout(resolve, 2000 * (attempt + 1)));
-        }
+      if (error) {
+        throw error;
       }
-    }
-
-    if (!success) {
-      console.error('[ContentContext] ❌ All sync attempts failed:', lastError);
-      showToast('Warning: Connection unstable. Changes saved on this device but might not reach server yet.', 'error');
+      console.log('[ContentContext] ✅ Content synced to Supabase successfully');
+    } catch (err: any) {
+      console.error('[ContentContext] Supabase sync error:', err.message || err);
+      // Attempt API fallback if configured
+      try {
+        await fetch(`${API_URL}/api/content`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newContent)
+        });
+      } catch (apiErr) {
+        showToast('Warning: Connection unstable. Changes saved on this device but might not reach cloud yet.', 'error');
+      }
     }
   };
 

@@ -51,8 +51,8 @@ export default function Hero() {
   return (
     <section className="relative min-h-screen pt-32 pb-20 overflow-hidden px-6">
       {/* Background Blobs */}
-      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/10 rounded-full blur-3xl -z-10 animate-pulse" />
-      <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-blue-500/10 rounded-full blur-3xl -z-10" />
+      <div className="absolute top-0 right-0 w-125 h-125 bg-primary/10 rounded-full blur-3xl -z-10 animate-pulse" />
+      <div className="absolute bottom-0 left-0 w-100 h-100 bg-blue-500/10 rounded-full blur-3xl -z-10" />
 
       <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
         <motion.div
@@ -95,7 +95,7 @@ export default function Hero() {
           <div className="flex flex-wrap gap-4 mb-12">
             <button 
               onClick={handleDownloadCV}
-              className="btn-primary flex items-center gap-2"
+              className="btn-primary flex items-center gap-2 cursor-pointer"
             >
               <Download size={20} />
               Download CV
@@ -129,9 +129,8 @@ export default function Hero() {
           </div>
         </motion.div>
 
-
         <motion.div
-          initial={{ opacity: 0, scale: 0.8, rotate: 5 }}
+          initial={{ opacity: 0, scale: 0.8, rotate: -5 }}
           animate={{ opacity: 1, scale: 1, rotate: 0 }}
           transition={{ duration: 1, type: 'spring', bounce: 0.4 }}
           className="relative"
@@ -141,7 +140,7 @@ export default function Hero() {
             <img
               src={getImageUrl(hero.image)}
               alt="Hero Illustration"
-              className="w-full max-w-lg aspect-[4/5] mx-auto object-cover drop-shadow-2xl rounded-3xl"
+              className="w-full max-w-lg aspect-4/5 mx-auto object-cover drop-shadow-2xl rounded-3xl"
             />
             
             {/* Floating Elements */}

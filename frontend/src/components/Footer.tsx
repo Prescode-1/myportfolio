@@ -73,7 +73,7 @@ export default function Footer() {
               <input
                 type="email"
                 placeholder="Email address"
-                className="bg-slate-800 border-none rounded-xl px-4 py-3 text-sm flex-grow focus:ring-2 focus:ring-primary/50"
+                className="bg-slate-800 border-none rounded-xl px-4 py-3 text-sm grow focus:ring-2 focus:ring-primary/50"
               />
               <button className="bg-primary p-3 rounded-xl hover:scale-105 transition-all">
                 <ArrowUp size={20} className="rotate-45" />

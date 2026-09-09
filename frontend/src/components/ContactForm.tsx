@@ -7,6 +7,7 @@ import { Send, CheckCircle2, Phone, Mail, MapPin } from 'lucide-react';
 import { useToast } from './Toast';
 import { useContent } from '../context/ContentContext';
 import { API_URL } from '../config/api';
+import { supabase } from '../lib/supabaseClient';
 
 const contactSchema = z.object({
   fullName: z.string().min(2, 'Name is too short'),
@@ -28,33 +29,35 @@ export default function ContactForm() {
 
   const onSubmit = async (data: ContactFormData) => {
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout for Render cold starts
+      console.log('[ContactForm] Inserting lead into Supabase...');
+      const { error } = await supabase
+        .from('leads')
+        .insert([{
+          full_name: data.fullName,
+          email: data.email,
+          phone: data.phone,
+          service: data.service,
+          message: data.message,
+          status: 'new'
+        }]);
 
-      const res = await fetch(`${API_URL}/api/leads`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
-
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => null);
-        throw new Error(errorData?.error || `Server error (${res.status})`);
+      if (error) {
+        console.warn('[ContactForm] Supabase insert error, attempting API fallback:', error.message);
+        // Fallback to legacy API if configured
+        const res = await fetch(`${API_URL}/api/leads`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        if (!res.ok) throw new Error(error.message);
       }
       
       setIsSubmitted(true);
-      showToast('Message sent successfully! Check your email for confirmation.', 'success');
+      showToast('Message sent successfully! Thank you for reaching out.', 'success');
       reset();
     } catch (error: any) {
       console.error('Submission failed:', error);
-      if (error.name === 'AbortError') {
-        showToast('Request timed out. The server might be starting up — please try again in 30 seconds.', 'error');
-      } else {
-        showToast(`Failed to send: ${error.message}. Please try again.`, 'error');
-      }
+      showToast(`Failed to send: ${error.message || 'Unknown error'}. Please try again.`, 'error');
     }
   };
 
@@ -63,7 +66,7 @@ export default function ContactForm() {
 
   return (
     <section className="py-24 px-6 relative overflow-hidden" id="contact">
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/5 rounded-full blur-3xl -z-10" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-200 h-200 bg-primary/5 rounded-full blur-3xl -z-10" />
 
       <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-20 items-center">
         <div>

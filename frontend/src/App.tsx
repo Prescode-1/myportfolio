@@ -73,7 +73,7 @@ export default function App() {
           <ScrollToTop />
           <div className="flex flex-col min-h-screen">
             <Navbar />
-            <main className="flex-grow">
+            <main className="grow">
               <ErrorBoundary>
                 <AnimatedRoutes />
               </ErrorBoundary>

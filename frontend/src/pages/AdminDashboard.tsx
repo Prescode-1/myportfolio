@@ -12,6 +12,7 @@ import { useContent } from '../context/ContentContext';
 import { Project, Skill, Service, Testimonial } from '../types';
 import { SERVICES, PROJECTS, SKILLS } from '../constants';
 import { API_URL } from '../config/api';
+import { supabase } from '../lib/supabaseClient';
 
 type Tab = 'overview' | 'leads' | 'hero' | 'about' | 'projects' | 'services' | 'skills' | 'testimonials' | 'contact' | 'booking' | 'bookedSessions';
 
@@ -28,18 +29,26 @@ export default function AdminDashboard() {
   React.useEffect(() => {
     if (user) {
       // Fetch Bookings
-      fetch(`${API_URL}/api/bookings`)
-        .then(res => res.json())
-        .then(data => setBookedSessions(data))
-        .catch(err => console.error('Failed to fetch bookings:', err));
+      supabase
+        .from('bookings')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .then(({ data, error }) => {
+          if (data) setBookedSessions(data);
+          else if (error) console.error('Failed to fetch bookings:', error.message);
+        });
 
       // Fetch Leads
-      fetch(`${API_URL}/api/leads`)
-        .then(res => res.json())
-        .then(data => setLeads(data))
-        .catch(err => console.error('Failed to fetch leads:', err));
+      supabase
+        .from('leads')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .then(({ data, error }) => {
+          if (data) setLeads(data);
+          else if (error) console.error('Failed to fetch leads:', error.message);
+        });
     }
-  }, [user, activeTab, API_URL]);
+  }, [user, activeTab]);
 
   // Editing States
   const [editingProject, setEditingProject] = useState<Project | null>(null);
@@ -135,21 +144,40 @@ export default function AdminDashboard() {
   };
 
   const handleImageUpload = async (file: File): Promise<string> => {
-    const formData = new FormData();
-    formData.append('image', file);
-
     try {
-      const res = await fetch(`${API_URL}/api/upload`, {
-        method: 'POST',
-        body: formData,
-      });
+      const fileExt = file.name.split('.').pop() || 'png';
+      const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${fileExt}`;
+      const filePath = `uploads/${fileName}`;
 
-      if (!res.ok) throw new Error('Upload failed');
-      const data = await res.json();
-      return data.url; // Return relative URL to store in DB
-    } catch (err) {
+      console.log('[AdminDashboard] Uploading file to Supabase Storage bucket "media"...');
+      const { data, error } = await supabase.storage
+        .from('media')
+        .upload(filePath, file, { cacheControl: '3600', upsert: true });
+
+      if (error) {
+        console.warn('[AdminDashboard] Supabase storage upload error, trying fallback:', error.message);
+        throw error;
+      }
+
+      const { data: publicUrlData } = supabase.storage
+        .from('media')
+        .getPublicUrl(filePath);
+
+      showToast('Image uploaded successfully!', 'success');
+      return publicUrlData.publicUrl;
+    } catch (err: any) {
       console.error('Upload error:', err);
-      showToast('Image upload failed', 'error');
+      // Attempt API upload fallback if configured
+      try {
+        const formData = new FormData();
+        formData.append('image', file);
+        const res = await fetch(`${API_URL}/api/upload`, { method: 'POST', body: formData });
+        if (res.ok) {
+          const data = await res.json();
+          return data.url;
+        }
+      } catch (fallbackErr) {}
+      showToast(`Image upload failed: ${err.message || 'Unknown error'}`, 'error');
       return '';
     }
   };
@@ -246,7 +274,7 @@ export default function AdminDashboard() {
           </div>
 
           {/* Content Area */}
-          <div className="glass p-10 rounded-[40px] shadow-sm min-h-[600px]">
+          <div className="glass p-10 rounded-[40px] shadow-sm min-h-150">
             <AnimatePresence mode="wait">
               {activeTab === 'overview' && (
                 <motion.div
@@ -258,7 +286,7 @@ export default function AdminDashboard() {
                   <h2 className="text-2xl font-extrabold text-dark mb-8">System Overview</h2>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
                     {stats.map((stat, i) => (
-                      <div key={i} className="bg-slate-50 p-8 rounded-[32px]">
+                      <div key={i} className="bg-slate-50 p-8 rounded-4xl">
                         <div className="flex items-center justify-between mb-6">
                           <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-slate-600 shadow-sm">
                             <stat.icon size={24} />
@@ -273,11 +301,11 @@ export default function AdminDashboard() {
                     ))}
                   </div>
                   
-                  <div className="bg-slate-50 p-8 rounded-[32px]">
+                  <div className="bg-slate-50 p-8 rounded-4xl">
                     <h3 className="text-xl font-bold text-dark mb-6">Analytics Trend</h3>
                     <div className="h-48 flex items-end gap-4">
                       {[40, 70, 45, 90, 65, 80, 55].map((h, i) => (
-                        <div key={i} className="flex-grow bg-white rounded-t-xl relative group overflow-hidden">
+                        <div key={i} className="grow bg-white rounded-t-xl relative group overflow-hidden">
                           <div style={{ height: `${h}%` }} className="absolute bottom-0 left-0 right-0 bg-primary/20" />
                         </div>
                       ))}
@@ -562,7 +590,7 @@ export default function AdminDashboard() {
                     {content.projects.map((project) => (
                       <div key={project.id} className="flex items-center gap-6 p-4 bg-slate-50 rounded-3xl">
                         <img src={getImageUrl(project.image)} className="w-24 h-24 rounded-2xl object-cover" alt="" />
-                        <div className="flex-grow">
+                        <div className="grow">
                           <h4 className="font-bold text-dark">{project.title}</h4>
                           <p className="text-sm text-slate-500 line-clamp-1">{project.description}</p>
                         </div>
@@ -806,7 +834,7 @@ export default function AdminDashboard() {
                   <div className="space-y-8">
                     {['frontend', 'backend', 'design', 'tools'].map((category) => (
                       <div key={category}>
-                        <h3 className="text-lg font-bold text-dark mb-4 uppercase tracking-widest text-slate-400">{category}</h3>
+                        <h3 className="text-lg font-bold mb-4 uppercase tracking-widest text-slate-400">{category}</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           {content.skills.filter(s => s.category === category).map((skill) => (
                             <div key={skill.name} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
@@ -949,7 +977,7 @@ export default function AdminDashboard() {
                     {content.testimonials.map((testimonial) => (
                       <div key={testimonial.id} className="flex items-center gap-6 p-6 bg-slate-50 rounded-3xl">
                         <img src={testimonial.image} className="w-16 h-16 rounded-2xl object-cover" alt="" />
-                        <div className="flex-grow">
+                        <div className="grow">
                           <div className="flex items-center gap-2 mb-1">
                             <h4 className="font-bold text-dark">{testimonial.name}</h4>
                             <div className="flex text-primary">

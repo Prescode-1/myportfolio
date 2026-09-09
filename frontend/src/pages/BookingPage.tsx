@@ -4,6 +4,7 @@ import { Calendar, Clock, Video, ArrowRight, CheckCircle2, ChevronLeft, ChevronR
 import { useToast } from '../components/Toast';
 import { useContent } from '../context/ContentContext';
 import { API_URL } from '../config/api';
+import { supabase } from '../lib/supabaseClient';
 
 export default function BookingPage() {
   const { content } = useContent();
@@ -86,41 +87,40 @@ export default function BookingPage() {
     setIsSubmitting(true);
 
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
-
-      const response = await fetch(`${API_URL}/api/bookings`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        signal: controller.signal,
-        body: JSON.stringify({
+      console.log('[BookingPage] Inserting booking into Supabase...');
+      const { error } = await supabase
+        .from('bookings')
+        .insert([{
           name: formData.name,
           email: formData.email,
           message: formData.message,
           service: selectedService,
           date: getFormattedDate(),
           time: selectedTime,
-        }),
-      });
+        }]);
 
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        throw new Error(errorData?.error || `Server error (${response.status})`);
+      if (error) {
+        console.warn('[BookingPage] Supabase booking error, trying API fallback:', error.message);
+        const response = await fetch(`${API_URL}/api/bookings`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: formData.name,
+            email: formData.email,
+            message: formData.message,
+            service: selectedService,
+            date: getFormattedDate(),
+            time: selectedTime,
+          }),
+        });
+        if (!response.ok) throw new Error(error.message);
       }
 
       setStep(4);
-      showToast('Session booked successfully! Check your email for confirmation.', 'success');
+      showToast('Session booked successfully!', 'success');
     } catch (error: any) {
       console.error('Booking error:', error);
-      if (error.name === 'AbortError') {
-        showToast('Request timed out. The server might be starting up — please try again in 30 seconds.', 'error');
-      } else {
-        showToast(`Failed to book session: ${error.message}. Please try again.`, 'error');
-      }
+      showToast(`Failed to book session: ${error.message || 'Unknown error'}. Please try again.`, 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -290,7 +290,7 @@ export default function BookingPage() {
                   </button>
                   <button
                     onClick={() => step === 2 && selectedDate && selectedTime ? setStep(3) : showToast('Select date and time', 'error')}
-                    className="btn-primary flex-[2] py-4 rounded-2xl"
+                    className="btn-primary flex-2 py-4 rounded-2xl"
                   >
                     Continue to Details
                   </button>
@@ -386,7 +386,7 @@ export default function BookingPage() {
                     <button
                       type="submit"
                       disabled={isSubmitting}
-                      className="btn-primary flex-[2] py-4 rounded-2xl flex items-center justify-center gap-2 disabled:opacity-70"
+                      className="btn-primary flex-2 py-4 rounded-2xl flex items-center justify-center gap-2 disabled:opacity-70"
                     >
                       {isSubmitting ? (
                         <>

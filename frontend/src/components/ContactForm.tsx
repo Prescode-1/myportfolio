@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Send, CheckCircle2, Phone, Mail, MapPin } from 'lucide-react';
 import { useToast } from './Toast';
 import { useContent } from '../context/ContentContext';
+import { API_URL } from '../config/api';
 
 const contactSchema = z.object({
   fullName: z.string().min(2, 'Name is too short'),
@@ -19,7 +20,6 @@ type ContactFormData = z.infer<typeof contactSchema>;
 
 export default function ContactForm() {
   const { content } = useContent();
-  const API_URL = import.meta.env.VITE_API_URL || "https://myportfolio-backend-phi.vercel.app";
   const [isSubmitted, setIsSubmitted] = useState(false);
   const { showToast } = useToast();
   const { register, handleSubmit, formState: { errors, isSubmitting }, reset } = useForm<ContactFormData>({

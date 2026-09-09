@@ -11,6 +11,7 @@ import { useToast } from '../components/Toast';
 import { useContent } from '../context/ContentContext';
 import { Project, Skill, Service, Testimonial } from '../types';
 import { SERVICES, PROJECTS, SKILLS } from '../constants';
+import { API_URL } from '../config/api';
 
 type Tab = 'overview' | 'leads' | 'hero' | 'about' | 'projects' | 'services' | 'skills' | 'testimonials' | 'contact' | 'booking' | 'bookedSessions';
 
@@ -22,8 +23,6 @@ export default function AdminDashboard() {
   const [user, setUser] = useState<any>({ displayName: 'Admin User' });
   const [loading, setLoading] = useState(false);
   const { showToast } = useToast();
-
-  const API_URL = import.meta.env.VITE_API_URL || "https://myportfolio-backend-phi.vercel.app";
 
   // Fetch Data
   React.useEffect(() => {

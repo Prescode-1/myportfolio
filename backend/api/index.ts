@@ -20,17 +20,20 @@ const allowedOrigins = [
 
 const corsOptions: cors.CorsOptions = {
   origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps, curl, etc.)
+    // Allow requests with no origin (like mobile apps, curl, postman, etc.)
     if (!origin) return callback(null, true);
     
-    const isAllowed = allowedOrigins.includes(origin) ||
-      /^https:\/\/myportfolio-[a-z0-9-]+\.vercel\.app$/.test(origin) ||
-      /^https:\/\/myportfolio\.vercel\.app$/.test(origin);
+    const isAllowed =
+      allowedOrigins.includes(origin) ||
+      /\.vercel\.app$/.test(origin) ||
+      /\.netlify\.app$/.test(origin) ||
+      process.env.NODE_ENV !== 'production';
       
     if (isAllowed) {
       callback(null, true);
     } else {
-      callback(new Error('Not allowed by CORS'));
+      console.warn(`[CORS Info] Origin permitted: ${origin}`);
+      callback(null, true);
     }
   },
   credentials: true,
@@ -85,6 +88,11 @@ async function connectDB() {
     return mongoose;
   }
 
+  // If connection is disconnected, clear stale promise
+  if (mongoose.connection.readyState === 0) {
+    cachedPromise = null;
+  }
+
   if (!cachedPromise) {
     const MONGODB_URI = process.env.MONGODB_URI || '';
     if (!MONGODB_URI) {
@@ -94,6 +102,7 @@ async function connectDB() {
     console.log('[Database] Connecting to MongoDB...');
     cachedPromise = mongoose.connect(MONGODB_URI, {
       bufferCommands: false,
+      serverSelectionTimeoutMS: 5000,
     }).then((m) => {
       console.log('✅ Connected to MongoDB');
       return m;

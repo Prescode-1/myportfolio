@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Calendar, Clock, Video, ArrowRight, CheckCircle2, ChevronLeft, ChevronRight, User, Mail, MessageSquare } from 'lucide-react';
 import { useToast } from '../components/Toast';
 import { useContent } from '../context/ContentContext';
+import { API_URL } from '../config/api';
 
 export default function BookingPage() {
   const { content } = useContent();
@@ -40,8 +41,6 @@ export default function BookingPage() {
 
   const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
   const times = content.booking.availableTimes;
-
-  const API_URL = import.meta.env.VITE_API_URL || "https://myportfolio-backend-phi.vercel.app";
 
   const prevMonth = () => {
     // Don't go to past months

@@ -9,7 +9,7 @@ const storage = multer.memoryStorage();
 
 const upload = multer({ 
   storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // Increased to 10MB limit
+  limits: { fileSize: 4.5 * 1024 * 1024 }, // 4.5MB Vercel serverless function payload limit
   fileFilter: (req, file, cb) => {
     const allowedTypes = /jpeg|jpg|png|gif|webp/;
     const mimetype = allowedTypes.test(file.mimetype);
@@ -20,9 +20,24 @@ const upload = multer({
   }
 });
 
+// Custom wrapper to handle Multer errors (like file size limit)
+const uploadSingleImage = (req: any, res: any, next: any) => {
+  upload.single('image')(req, res, (err: any) => {
+    if (err instanceof multer.MulterError) {
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).json({ error: 'Image size exceeds 4.5MB serverless payload limit. Please upload a smaller image.' });
+      }
+      return res.status(400).json({ error: `Upload error: ${err.message}` });
+    } else if (err) {
+      return res.status(400).json({ error: err.message });
+    }
+    next();
+  });
+};
+
 // @route   POST api/upload
 // @desc    Upload an image to MongoDB and return its permanent URL
-router.post('/', upload.single('image'), async (req: any, res: any) => {
+router.post('/', uploadSingleImage, async (req: any, res: any) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'Please upload a file' });

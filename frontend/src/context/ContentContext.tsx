@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useToast } from '../components/Toast';
 import { PROJECTS, SERVICES, SKILLS } from '../constants';
 import { Project, Service, Skill, Testimonial } from '../types';
+import { API_URL } from '../config/api';
 
 interface SiteContent {
   projects: Project[];
@@ -163,8 +164,6 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [content, setContent] = useState<SiteContent>(cachedContent || fallbackDefaults);
   const [isLoading, setIsLoading] = useState(true);
   const { showToast } = useToast();
-
-  const API_URL = import.meta.env.VITE_API_URL || "https://myportfolio-backend-phi.vercel.app";
 
   useEffect(() => {
     let isMounted = true;

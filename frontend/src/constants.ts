@@ -57,7 +57,7 @@ export const SKILLS: Skill[] = [
   { name: 'Postman', proficiency: 95, category: 'tools', icon: 'Send' },
   { name: 'AWS', proficiency: 82, category: 'tools', icon: 'Cloud' },
   { name: 'Vercel', proficiency: 96, category: 'tools', icon: 'Triangle' },
-  { name: 'Render', proficiency: 92, category: 'tools', icon: 'Cloud' },
+  { name: 'Supabase', proficiency: 92, category: 'tools', icon: 'Database' },
 ];
 
 export const SERVICES: Service[] = [

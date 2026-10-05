@@ -65,7 +65,7 @@ export default function Hero() {
               {[1, 2, 3, 4].map((i) => (
                 <img
                   key={i}
-                  src={`https://xsgames.co/randomusers/avatar.php?g=${i % 2 === 0 ? 'female' : 'male'}&u=${i}`}
+                  src={`https://i.pravatar.cc/100?img=${i + 10}`}
                   className="w-8 h-8 rounded-full border-2 border-white shadow-sm"
                   alt="User"
                 />

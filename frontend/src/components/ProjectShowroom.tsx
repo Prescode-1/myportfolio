@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ExternalLink, Github, X, ArrowRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { Project } from '../types';
 import { useContent } from '../context/ContentContext';
 
@@ -26,10 +27,10 @@ export default function ProjectShowroom() {
               A showcase of my recent work, from enterprise platforms to creative experiments.
             </p>
           </div>
-          <button className="btn-secondary flex items-center gap-2">
+          <Link to="/projects" className="btn-secondary flex items-center gap-2">
             View All Projects
             <ArrowRight size={20} />
-          </button>
+          </Link>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">

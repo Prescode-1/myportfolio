@@ -6,6 +6,7 @@ import { useContent } from '../context/ContentContext';
 
 export default function ConsultationBooking() {
   const { content } = useContent();
+  const currentMonthYear = new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' });
   
   return (
     <section className="py-24 px-6 bg-primary/5">
@@ -51,7 +52,7 @@ export default function ConsultationBooking() {
             {/* Mock Calendar UI */}
             <div className="glass p-8 rounded-3xl shadow-xl rotate-2 hover:rotate-0 transition-transform duration-500">
               <div className="flex items-center justify-between mb-8">
-                <h3 className="text-xl font-bold text-dark">March 2026</h3>
+                <h3 className="text-xl font-bold text-dark">{currentMonthYear}</h3>
                 <div className="flex gap-2">
                   <button className="w-8 h-8 glass flex items-center justify-center rounded-lg text-slate-400">{'<'}</button>
                   <button className="w-8 h-8 glass flex items-center justify-center rounded-lg text-slate-400">{'>'}</button>

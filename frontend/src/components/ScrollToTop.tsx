@@ -6,9 +6,16 @@ export default function ScrollToTop() {
 
   useEffect(() => {
     if (hash) {
-      const element = document.getElementById(hash.replace('#', ''));
+      const targetId = hash.replace('#', '');
+      const element = document.getElementById(targetId);
       if (element) {
         element.scrollIntoView({ behavior: 'smooth' });
+      } else {
+        const timer = setTimeout(() => {
+          const el = document.getElementById(targetId);
+          if (el) el.scrollIntoView({ behavior: 'smooth' });
+        }, 150);
+        return () => clearTimeout(timer);
       }
     } else {
       window.scrollTo(0, 0);

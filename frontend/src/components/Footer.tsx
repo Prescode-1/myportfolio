@@ -1,10 +1,24 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Github, Linkedin, Twitter, Mail, Instagram, ArrowUp, Lock } from 'lucide-react';
 import { useContent } from '../context/ContentContext';
+import { useToast } from './Toast';
 
 export default function Footer() {
   const { content } = useContent();
+  const { showToast } = useToast();
+  const [newsletterEmail, setNewsletterEmail] = useState('');
+
+  const handleSubscribe = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newsletterEmail || !newsletterEmail.includes('@')) {
+      showToast('Please enter a valid email address', 'error');
+      return;
+    }
+    showToast('Subscribed to newsletter successfully!', 'success');
+    setNewsletterEmail('');
+  };
+
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -69,16 +83,18 @@ export default function Footer() {
           <div>
             <h4 className="text-lg font-bold mb-6">Newsletter</h4>
             <p className="text-slate-400 mb-6 text-sm">Subscribe to get the latest insights and project updates.</p>
-            <div className="flex gap-2">
+            <form onSubmit={handleSubscribe} className="flex gap-2">
               <input
                 type="email"
+                value={newsletterEmail}
+                onChange={(e) => setNewsletterEmail(e.target.value)}
                 placeholder="Email address"
                 className="bg-slate-800 border-none rounded-xl px-4 py-3 text-sm grow focus:ring-2 focus:ring-primary/50"
               />
-              <button className="bg-primary p-3 rounded-xl hover:scale-105 transition-all">
+              <button type="submit" className="bg-primary p-3 rounded-xl hover:scale-105 transition-all">
                 <ArrowUp size={20} className="rotate-45" />
               </button>
-            </div>
+            </form>
           </div>
         </div>
 

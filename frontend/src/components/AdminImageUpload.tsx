@@ -39,6 +39,7 @@ export default function AdminImageUpload({ value, onChange, onUpload, label }: A
             <img src={getImageUrl(value)} alt="Uploaded" className="w-full h-full object-cover" />
             <div className="absolute inset-0 bg-dark/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
               <button 
+                type="button"
                 onClick={() => fileInputRef.current?.click()}
                 className="p-3 bg-white text-dark rounded-xl hover:text-primary transition-all shadow-lg"
                 title="Change Image"
@@ -46,6 +47,7 @@ export default function AdminImageUpload({ value, onChange, onUpload, label }: A
                 <Upload size={20} />
               </button>
               <button 
+                type="button"
                 onClick={() => onChange('')}
                 className="p-3 bg-white text-red-500 rounded-xl hover:bg-red-50 transition-all shadow-lg"
                 title="Remove Image"
@@ -61,6 +63,7 @@ export default function AdminImageUpload({ value, onChange, onUpload, label }: A
           </div>
         ) : (
           <button
+            type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={isUploading}
             className="w-full aspect-video rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 flex flex-col items-center justify-center gap-3 hover:border-primary/50 hover:bg-primary/5 transition-all group"

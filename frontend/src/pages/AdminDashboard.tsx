@@ -323,23 +323,35 @@ export default function AdminDashboard() {
                 >
                   <h2 className="text-2xl font-extrabold text-dark mb-8">Recent Leads</h2>
                   <div className="space-y-4">
-                    {leads.map((lead) => (
-                      <div key={lead._id} className="flex items-center justify-between p-6 bg-slate-50 rounded-3xl">
-                        <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 bg-primary/10 text-primary rounded-2xl flex items-center justify-center font-bold">
-                            {lead.fullName?.[0] || '?'}
-                          </div>
-                          <div>
-                            <div className="font-bold text-dark">{lead.fullName}</div>
-                            <div className="text-sm text-slate-500">{lead.email}</div>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-sm font-bold text-slate-600 capitalize">{lead.service}</div>
-                          <div className="text-xs text-slate-400">{lead.createdAt ? new Date(lead.createdAt).toLocaleDateString() : 'N/A'}</div>
-                        </div>
+                    {leads.length === 0 ? (
+                      <div className="text-center py-12 bg-slate-50 rounded-3xl">
+                        <MessageSquare size={48} className="mx-auto text-slate-300 mb-4" />
+                        <p className="text-slate-500 font-bold">No leads received yet.</p>
                       </div>
-                    ))}
+                    ) : (
+                      leads.map((lead) => {
+                        const name = lead.full_name || lead.fullName || 'Anonymous';
+                        const createdAt = lead.created_at || lead.createdAt;
+                        return (
+                          <div key={lead.id || lead._id || Math.random()} className="flex items-center justify-between p-6 bg-slate-50 rounded-3xl">
+                            <div className="flex items-center gap-4">
+                              <div className="w-12 h-12 bg-primary/10 text-primary rounded-2xl flex items-center justify-center font-bold">
+                                {name[0] || '?'}
+                              </div>
+                              <div>
+                                <div className="font-bold text-dark">{name}</div>
+                                <div className="text-sm text-slate-500">{lead.email}</div>
+                                {lead.phone && <div className="text-xs text-slate-400">{lead.phone}</div>}
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-sm font-bold text-slate-600 capitalize">{lead.service}</div>
+                              <div className="text-xs text-slate-400">{createdAt ? new Date(createdAt).toLocaleDateString() : 'N/A'}</div>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
                   </div>
                 </motion.div>
               )}
@@ -1183,7 +1195,7 @@ export default function AdminDashboard() {
                       </div>
                     ) : (
                       bookedSessions.map((session) => (
-                        <div key={session._id} className="p-6 bg-slate-50 rounded-3xl border border-slate-100 hover:border-primary/20 transition-all">
+                        <div key={session.id || session._id || Math.random()} className="p-6 bg-slate-50 rounded-3xl border border-slate-100 hover:border-primary/20 transition-all">
                           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                             <div className="flex items-center gap-4">
                               <div className="w-12 h-12 bg-primary/10 text-primary rounded-2xl flex items-center justify-center font-bold">

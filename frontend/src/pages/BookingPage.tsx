@@ -87,33 +87,40 @@ export default function BookingPage() {
     setIsSubmitting(true);
 
     try {
-      console.log('[BookingPage] Inserting booking into Supabase...');
-      const { error } = await supabase
-        .from('bookings')
-        .insert([{
-          name: formData.name,
-          email: formData.email,
-          message: formData.message,
-          service: selectedService,
-          date: getFormattedDate(),
-          time: selectedTime,
-        }]);
+      const bookingData = {
+        name: formData.name,
+        email: formData.email,
+        message: formData.message,
+        service: selectedService,
+        date: getFormattedDate(),
+        time: selectedTime,
+      };
 
-      if (error) {
-        console.warn('[BookingPage] Supabase booking error, trying API fallback:', error.message);
-        const response = await fetch(`${API_URL}/api/bookings`, {
+      console.log('[BookingPage] Inserting booking into Supabase...');
+      const { error: sbError } = await supabase
+        .from('bookings')
+        .insert([bookingData]);
+
+      if (sbError) {
+        console.warn('[BookingPage] Supabase booking error:', sbError.message);
+      }
+
+      // Always dispatch email notification to the receiving email and client
+      try {
+        const endpoint = API_URL ? `${API_URL}/api/bookings` : '/api/bookings';
+        console.log('[BookingPage] Dispatching booking email notification to:', endpoint);
+        const response = await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: formData.name,
-            email: formData.email,
-            message: formData.message,
-            service: selectedService,
-            date: getFormattedDate(),
-            time: selectedTime,
-          }),
+          body: JSON.stringify(bookingData),
         });
-        if (!response.ok) throw new Error(error.message);
+
+        if (!response.ok && sbError) {
+          throw new Error('Failed to save booking to database or send confirmation email.');
+        }
+      } catch (emailErr: any) {
+        console.warn('[BookingPage] Email dispatch warning:', emailErr?.message || emailErr);
+        if (sbError) throw emailErr;
       }
 
       setStep(4);

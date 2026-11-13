@@ -30,7 +30,7 @@ export default function ContactForm() {
   const onSubmit = async (data: ContactFormData) => {
     try {
       console.log('[ContactForm] Inserting lead into Supabase...');
-      const { error } = await supabase
+      const { error: sbError } = await supabase
         .from('leads')
         .insert([{
           full_name: data.fullName,
@@ -41,15 +41,25 @@ export default function ContactForm() {
           status: 'new'
         }]);
 
-      if (error) {
-        console.warn('[ContactForm] Supabase insert error, attempting API fallback:', error.message);
-        // Fallback to legacy API if configured
-        const res = await fetch(`${API_URL}/api/leads`, {
+      if (sbError) {
+        console.warn('[ContactForm] Supabase insert warning:', sbError.message);
+      }
+
+      // Always dispatch lead email notification
+      try {
+        const endpoint = API_URL ? `${API_URL}/api/leads` : '/api/leads';
+        console.log('[ContactForm] Dispatching contact email notification to:', endpoint);
+        const res = await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(data)
         });
-        if (!res.ok) throw new Error(error.message);
+        if (!res.ok && sbError) {
+          throw new Error(sbError.message);
+        }
+      } catch (emailErr: any) {
+        console.warn('[ContactForm] Lead email notification warning:', emailErr?.message || emailErr);
+        if (sbError) throw emailErr;
       }
       
       setIsSubmitted(true);
